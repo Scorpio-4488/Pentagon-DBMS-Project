@@ -52,10 +52,10 @@ async function getMyNotifications(req, res) {
     sql += ' ORDER BY n.sent_at DESC LIMIT ?';
     params.push(limitVal);
 
-    const [notifications] = await pool.execute(sql, params);
+    const [notifications] = await pool.query(sql, params);
 
     // Get unread count
-    const [[{ unread_count }]] = await pool.execute(
+    const [[{ unread_count }]] = await pool.query(
       'SELECT COUNT(*) AS unread_count FROM notifications WHERE user_id = ? AND is_read = FALSE',
       [user_id]
     );

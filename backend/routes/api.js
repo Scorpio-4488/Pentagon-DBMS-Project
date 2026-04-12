@@ -97,6 +97,13 @@ router.post('/events/:id/attendance',
   registrationController.markAttendance
 );
 
+// Organizer/Admin — generate certificate
+router.post('/events/:id/certificates',
+  authenticate,
+  authorize('organizer', 'admin'),
+  registrationController.generateCertificate
+);
+
 
 // ╔══════════════════════════════════════════════════════════╗
 // ║  FEEDBACK ROUTES                                        ║

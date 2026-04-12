@@ -97,8 +97,9 @@ async function listEvents(req, res) {
     }
 
     // ── Pagination ──
-    const offset    = (Math.max(1, parseInt(page)) - 1) * parseInt(limit);
-    const limitVal  = Math.min(100, Math.max(1, parseInt(limit))); // Cap at 100
+    const pageNum   = Math.max(1, parseInt(page) || 1);
+    const limitVal  = Math.min(100, Math.max(1, parseInt(limit) || 20));
+    const offset    = (pageNum - 1) * limitVal;
 
     // ── Count total matching rows (for pagination metadata) ──
     const countParams = [...params];
@@ -108,8 +109,7 @@ async function listEvents(req, res) {
         INNER JOIN event_categories ec ON e.category_id = ec.category_id
       ${whereSQL}
     `;
-    // For count query, we need the search param once (in WHERE)
-    const [countRows] = await pool.execute(countSQL, countParams);
+    const [countRows] = await pool.query(countSQL, countParams);
     const total = countRows[0].total;
 
     // ── Fetch page of results ──
@@ -148,14 +148,14 @@ async function listEvents(req, res) {
       LIMIT ? OFFSET ?
     `;
 
-    const [events] = await pool.execute(sql, mainParams);
+    const [events] = await pool.query(sql, mainParams);
 
     return res.status(200).json({
       success: true,
       data: {
         events,
         pagination: {
-          page:     parseInt(page),
+          page:     pageNum,
           per_page: limitVal,
           total,
           pages:    Math.ceil(total / limitVal),
@@ -290,10 +290,39 @@ async function createEvent(req, res) {
       registration_fee, banner_url,
     ]);
 
+    const newEventId = result.insertId;
+
+    // ── Notify all students about the new event ──
+    // Single INSERT...SELECT — no JS loop, fully server-side
+    const eventDateFormatted = new Date(event_date).toLocaleDateString('en-IN', {
+      day: 'numeric', month: 'short', year: 'numeric',
+    });
+
+    try {
+      await pool.execute(`
+        INSERT INTO notifications (user_id, event_id, title, message, type)
+        SELECT
+          u.user_id,
+          ?,
+          ?,
+          ?,
+          'update'
+        FROM users u
+        WHERE u.role = 'student'
+      `, [
+        newEventId,
+        `New Event: ${event_name}`,
+        `A new event "${event_name}" has been announced for ${eventDateFormatted}. Check it out and register before seats fill up!`,
+      ]);
+    } catch (notifErr) {
+      // Log but don't fail the request — the event was created successfully
+      console.error('[EventController] Failed to broadcast notifications:', notifErr.message);
+    }
+
     return res.status(201).json({
       success: true,
       data: {
-        event_id: result.insertId,
+        event_id: newEventId,
         event_name,
         organizer_id,
         max_capacity,
@@ -477,9 +506,9 @@ async function cancelEvent(req, res) {
       });
     }
 
-    // ── Call stored procedure ──
-    const [rows] = await pool.execute('CALL sp_cancel_event(?, @result)', [id]);
-    const [[{ '@result': result }]] = await pool.execute('SELECT @result');
+    // ── Call stored procedure (must use pool.query for @session vars) ──
+    const [rows] = await pool.query('CALL sp_cancel_event(?, @result)', [id]);
+    const [[{ '@result': result }]] = await pool.query('SELECT @result');
 
     if (result !== 'SUCCESS') {
       const messages = {
