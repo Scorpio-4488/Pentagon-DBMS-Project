@@ -4,20 +4,37 @@ A production-grade, full-stack web application for managing college events — f
 
 Built as a **DBMS course project** demonstrating BCNF-normalized relational design, ACID-compliant stored procedures, and a modern SaaS-style user interface.
 
+## 👥 Team — Pentagon
+
+| Member | Role |
+|---|---|
+| Asim Khamari | Database Design & SQL |
+| Sagar Sahu | Backend API Development |
+| Asish Kumar Das | Frontend UI/UX |
+| Mayank Kumar Khastagir | Testing & Documentation |
+| Ronnic Wilmer Ekka| Integration & Deployment |
+
 ---
 
 ## 📸 Screenshots
 
+#### Seat/Capacity Management: Limit registrations based on available slots
 ![WhatsApp Image 2026-04-12 at 18 59 59](https://github.com/user-attachments/assets/c61710b0-ca46-4f54-95b8-d08d0ee29826)
+#### Participation Tracking: Track which students have registered, attended, or completed events; manage participation status
+#### Certificates & Results: Generate participation or winner certificates
 ![7](https://github.com/user-attachments/assets/dbad43d1-0e9f-4e31-b424-2c1d51151434)
 
+#### Event Creation: Organizers can create and manage events with details such as event name, date, venue, description, and capacity
 ![WhatsApp Image 2026-04-12 at 19 00 00](https://github.com/user-attachments/assets/ca9ff530-886e-461c-b2b5-edad70e837a5)
-
-![WhatsApp Image 2026-04-12 at 19 00 00](https://github.com/user-attachments/assets/451ea9c6-42b2-4749-b1f0-18c207393901)
-
+#### Student Registration: Students can register for events, and the system stores participant details in the database
+![9](https://github.com/user-attachments/assets/ca7cea45-b32a-4b10-b296-b03dc9c1a9d0)
+#### Feedback System: Collect feedback from participants
+![8](https://github.com/user-attachments/assets/a0dc8573-b358-4c37-a4b5-47296acee7ef)
+#### Event Categories: Technical, cultural, sports, etc.
 ![2](https://github.com/user-attachments/assets/c19c378d-f03d-4d60-87d4-cebfffdab0e5)
 ![3](https://github.com/user-attachments/assets/e2c04faf-e641-4974-95e0-138e9f222d79)
 ![4](https://github.com/user-attachments/assets/0a31ce44-470a-4c13-9ee1-140bbd43c91e)
+#### Notifications: Send updates or reminders about upcoming events, registration deadlines, or changes
 ![5](https://github.com/user-attachments/assets/ae3a6662-c4de-47bd-8050-861ae8f940bb)
 
 ---
@@ -446,18 +463,6 @@ This ensures that even under 100 concurrent registrations, **no two students can
 - [x] JWT expires → 401 redirect to login
 - [x] Student tries admin route → 403 Forbidden
 - [x] Cancel event → all registrants notified, seats restored
-
----
-
-## 👥 Team — Pentagon
-
-| Member | Role |
-|---|---|
-| Member 1 | Database Design & SQL |
-| Member 2 | Backend API Development |
-| Member 3 | Frontend UI/UX |
-| Member 4 | Testing & Documentation |
-| Member 5 | Integration & Deployment |
 
 ---
 
