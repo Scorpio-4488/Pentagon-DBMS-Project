@@ -8,10 +8,17 @@ Built as a **DBMS course project** demonstrating BCNF-normalized relational desi
 
 ## 📸 Screenshots
 
-<!-- Add your own screenshots here -->
-<!-- ![Student Dashboard](./docs/screenshots/student-dashboard.png) -->
-<!-- ![Admin Dashboard](./docs/screenshots/admin-dashboard.png) -->
-<!-- ![Event Detail Modal](./docs/screenshots/event-detail.png) -->
+![WhatsApp Image 2026-04-12 at 18 59 59](https://github.com/user-attachments/assets/c61710b0-ca46-4f54-95b8-d08d0ee29826)
+![7](https://github.com/user-attachments/assets/dbad43d1-0e9f-4e31-b424-2c1d51151434)
+
+![WhatsApp Image 2026-04-12 at 19 00 00](https://github.com/user-attachments/assets/ca9ff530-886e-461c-b2b5-edad70e837a5)
+
+![WhatsApp Image 2026-04-12 at 19 00 00](https://github.com/user-attachments/assets/451ea9c6-42b2-4749-b1f0-18c207393901)
+
+![2](https://github.com/user-attachments/assets/c19c378d-f03d-4d60-87d4-cebfffdab0e5)
+![3](https://github.com/user-attachments/assets/e2c04faf-e641-4974-95e0-138e9f222d79)
+![4](https://github.com/user-attachments/assets/0a31ce44-470a-4c13-9ee1-140bbd43c91e)
+![5](https://github.com/user-attachments/assets/ae3a6662-c4de-47bd-8050-861ae8f940bb)
 
 ---
 
@@ -179,67 +186,7 @@ All 9 tables satisfy BCNF — every determinant is a candidate key:
 
 ### Entity-Relationship Diagram
 
-```
-┌─────────────────┐       ┌──────────────────┐       ┌─────────────────┐
-│  event_categories│       │      venues       │       │      users      │
-│─────────────────│       │──────────────────│       │─────────────────│
-│ PK category_id  │       │ PK venue_id      │       │ PK user_id      │
-│    category_name │       │    venue_name     │       │    first_name   │
-│    description   │       │    building       │       │    last_name    │
-│                  │       │    capacity       │       │    email (UQ)   │
-│                  │       │    facilities     │       │    password_hash│
-└──────┬──────────┘       └──────┬───────────┘       │    role (ENUM)  │
-       │ 1                       │ 1                  │    department   │
-       │                         │                    │    phone        │
-       │ ╔═══════════════════════╪════════════════╗   └──┬──────┬──────┘
-       │ ║        M              │                ║      │1     │1
-       ├─╫──────────────────────╮│                ║      │      │
-       │ ║                      ││                ║      │      │
-  ┌────▼─╨──────────────────────▼▼────────────────╨──────▼──┐   │
-  │                        events                            │   │
-  │──────────────────────────────────────────────────────────│   │
-  │ PK event_id                                              │   │
-  │    event_name          FK category_id ──→ event_categories│   │
-  │    description         FK venue_id ──→ venues            │   │
-  │    event_date          FK organizer_id ──→ users         │   │
-  │    end_date            status (ENUM)                     │   │
-  │    max_capacity        available_seats                   │   │
-  │    registration_fee    banner_url                        │   │
-  └───┬──────────┬─────────────┬─────────────────────────────┘   │
-      │1         │1            │1                                │
-      │          │             │                                 │
-      │     ┌────▼─────────────▼───────────────────┐             │
-      │     │          registrations                │             │
-      │     │──────────────────────────────────────│             │
-      │     │ PK registration_id                    │◄────────────┘
-      │     │    FK user_id ──→ users               │    M
-      │     │    FK event_id ──→ events             │
-      │     │    status (ENUM)                      │
-      │     │    registered_at                      │
-      │     └───┬──────────────┬───────────────────┘
-      │         │1             │1
-      │         │              │
-      │    ┌────▼────┐   ┌────▼──────────┐
-      │    │attendance│   │ certificates  │
-      │    │─────────│   │──────────────│
-      │    │PK att_id │   │PK cert_id    │
-      │    │FK reg_id │   │FK reg_id     │
-      │    │check_in  │   │cert_url      │
-      │    │check_out │   │cert_hash(UQ) │
-      │    │method    │   │issued_at     │
-      │    └─────────┘   └──────────────┘
-      │
-      │     ┌──────────────────┐    ┌──────────────────┐
-      │     │     feedback      │    │  notifications   │
-      │     │──────────────────│    │──────────────────│
-      │     │ PK feedback_id   │    │ PK notif_id      │
-      ├────►│ FK event_id      │    │ FK user_id ──→ users
-      │     │ FK user_id ──→ users  │ FK event_id ──→ events
-      │     │ rating (1-5)     │    │ title, message   │
-      │     │ comments         │    │ type (ENUM)      │
-      │     │ UQ(user,event)   │    │ is_read          │
-      │     └──────────────────┘    └──────────────────┘
-```
+<img width="1179" height="772" alt="Screenshot 2026-04-12 at 6 40 37 PM" src="https://github.com/user-attachments/assets/e3684dd6-134d-4085-b2ea-faadf22da4c0" />
 
 ### Foreign Key Relationships (12 total)
 
