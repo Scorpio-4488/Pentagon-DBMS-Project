@@ -73,27 +73,8 @@ Built as a **DBMS course project** demonstrating BCNF-normalized relational desi
 
 ## 🏗️ Architecture
 
-```
-┌────────────────────────────────────────────────────────────┐
-│                      Frontend (SPA)                        │
-│     React 18 + Vite 6 + Tailwind CSS 3 + Axios            │
-│     Port: 5173 (dev proxy → :3000/api)                     │
-└────────────────────┬───────────────────────────────────────┘
-                     │  HTTP/JSON (REST)
-┌────────────────────▼───────────────────────────────────────┐
-│                    Backend (API Server)                     │
-│     Node.js + Express.js + JWT + bcrypt                     │
-│     Port: 3000                                              │
-│     21 RESTful endpoints • Raw SQL (no ORM)                 │
-└────────────────────┬───────────────────────────────────────┘
-                     │  mysql2/promise (connection pool)
-┌────────────────────▼───────────────────────────────────────┐
-│                      Database                              │
-│     MySQL 8.0+ (InnoDB)                                     │
-│     9 tables • BCNF normalized • 4 stored procedures        │
-│     FULLTEXT indexes • CHECK constraints                    │
-└────────────────────────────────────────────────────────────┘
-```
+<img width="650" height="754" alt="image" src="https://github.com/user-attachments/assets/1210edb4-aebd-4a5a-82ae-9299074c9577" />
+
 
 ---
 
