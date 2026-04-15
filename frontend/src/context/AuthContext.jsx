@@ -1,88 +1,66 @@
-/**
- * ============================================================
- * Auth Context — Global Authentication State
- * ============================================================
- *
- * Provides user state, login/logout/register functions, and
- * role-checking utilities to all components via React Context.
- * Persists auth state in localStorage across page reloads.
- * ============================================================
- */
+import { createContext, useContext, useEffect, useState } from 'react';
 
-import { createContext, useContext, useState, useEffect } from 'react';
 import api from '../utils/api';
 
 const AuthContext = createContext(null);
+const USER_STORAGE_KEY = 'user';
+const TOKEN_STORAGE_KEY = 'token';
+
+function persistAuth(user, token) {
+  localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
+  localStorage.setItem(TOKEN_STORAGE_KEY, token);
+}
+
+function clearStoredAuth() {
+  localStorage.removeItem(USER_STORAGE_KEY);
+  localStorage.removeItem(TOKEN_STORAGE_KEY);
+}
 
 export function AuthProvider({ children }) {
-  const [user, setUser]       = useState(null);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  /**
-   * On mount, restore user state from localStorage.
-   * Validates the stored token by fetching profile.
-   */
   useEffect(() => {
-    const storedUser  = localStorage.getItem('user');
-    const storedToken = localStorage.getItem('token');
+    const storedUser = localStorage.getItem(USER_STORAGE_KEY);
+    const storedToken = localStorage.getItem(TOKEN_STORAGE_KEY);
 
-    if (storedUser && storedToken) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch {
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
-      }
+    if (!storedUser || !storedToken) {
+      setLoading(false);
+      return;
     }
-    setLoading(false);
+
+    try {
+      setUser(JSON.parse(storedUser));
+    } catch {
+      clearStoredAuth();
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  /**
-   * Login — POST credentials, store JWT + user data.
-   * Returns the user object on success; throws on failure.
-   */
   async function login(email, password) {
-    const res = await api.post('/auth/login', { email, password });
-    const { token, ...userData } = res.data.data;
+    const response = await api.post('/auth/login', { email, password });
+    const { token, ...userData } = response.data.data;
 
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(userData));
+    persistAuth(userData, token);
     setUser(userData);
 
     return userData;
   }
 
-  /**
-   * Register — POST new user, store JWT + user data.
-   */
   async function register(formData) {
-    const res = await api.post('/auth/register', formData);
-    const { token, ...userData } = res.data.data;
+    const response = await api.post('/auth/register', formData);
+    const { token, ...userData } = response.data.data;
 
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(userData));
+    persistAuth(userData, token);
     setUser(userData);
 
     return userData;
   }
 
-  /**
-   * Logout — Clear all stored auth data.
-   */
   function logout() {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    clearStoredAuth();
     setUser(null);
-  }
-
-  /** Check if user has a specific role */
-  function hasRole(role) {
-    return user?.role === role;
-  }
-
-  /** Check if user is admin or organizer */
-  function isAdminOrOrganizer() {
-    return user?.role === 'admin' || user?.role === 'organizer';
   }
 
   const value = {
@@ -91,26 +69,20 @@ export function AuthProvider({ children }) {
     login,
     register,
     logout,
-    hasRole,
-    isAdminOrOrganizer,
-    isAuthenticated: !!user,
+    hasRole: (role) => user?.role === role,
+    isAdminOrOrganizer: () => user?.role === 'admin' || user?.role === 'organizer',
+    isAuthenticated: Boolean(user),
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-/**
- * Custom hook to consume auth context.
- * Throws if used outside of AuthProvider.
- */
 export function useAuth() {
   const context = useContext(AuthContext);
+
   if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
+
   return context;
 }

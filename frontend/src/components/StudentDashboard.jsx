@@ -1,364 +1,364 @@
-/**
- * ============================================================
- * Student Dashboard — Event Discovery & Explorer
- * ============================================================
- *
- * Rubric Features Covered:
- *  ✅ Search & Filter (keyword, date, category, popularity)
- *  ✅ Event Categories (clickable filter pills)
- *  ✅ Seat/Capacity Management (progress bars on cards)
- *  ✅ Student Registration (via EventDetailModal)
- *
- * Premium SaaS-grade layout with stats, category pills,
- * search/filter toolbar, and responsive event grid.
- * ============================================================
- */
+import { useEffect, useState } from 'react';
+import {
+  ArrowUpDown,
+  Calendar,
+  Clock3,
+  IndianRupee,
+  Loader2,
+  MapPin,
+  Search,
+  SlidersHorizontal,
+  Ticket,
+  TrendingUp,
+  Users,
+} from 'lucide-react';
 
-import { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { toast } from './Toast';
 import EventDetailModal from './EventDetailModal';
-import {
-  Calendar,
-  MapPin,
-  Users,
-  Search,
-  Filter,
-  Ticket,
-  TrendingUp,
-  Clock,
-  ChevronDown,
-  Loader2,
-  IndianRupee,
-  Sparkles,
-  Zap,
-  Palette,
-  Trophy,
-  BookOpen,
-  GraduationCap,
-  ArrowUpDown,
-  SlidersHorizontal,
-  X,
-} from 'lucide-react';
 
-/* ── Category styling with icons ── */
-const CATEGORIES = [
-  { name: 'Technical', icon: Zap,           bg: 'bg-blue-500/10',    text: 'text-blue-400',    border: 'border-blue-500/20',    activeBg: 'bg-blue-500',  gradient: 'from-blue-600 to-cyan-500' },
-  { name: 'Cultural',  icon: Palette,       bg: 'bg-pink-500/10',    text: 'text-pink-400',    border: 'border-pink-500/20',    activeBg: 'bg-pink-500',  gradient: 'from-pink-600 to-rose-400' },
-  { name: 'Sports',    icon: Trophy,        bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/20', activeBg: 'bg-emerald-500', gradient: 'from-emerald-600 to-teal-400' },
-  { name: 'Workshop',  icon: BookOpen,      bg: 'bg-amber-500/10',   text: 'text-amber-400',   border: 'border-amber-500/20',   activeBg: 'bg-amber-500', gradient: 'from-amber-600 to-yellow-400' },
-  { name: 'Seminar',   icon: GraduationCap, bg: 'bg-purple-500/10',  text: 'text-purple-400',  border: 'border-purple-500/20',  activeBg: 'bg-purple-500', gradient: 'from-purple-600 to-violet-400' },
-];
+const CATEGORY_OPTIONS = ['Technical', 'Cultural', 'Sports', 'Workshop', 'Seminar'];
 
-function getCategoryStyle(name) {
-  return CATEGORIES.find((c) => c.name === name) || CATEGORIES[0];
+const METRIC_STYLES = {
+  events: {
+    container: 'bg-brand-50 text-brand-700',
+    icon: Calendar,
+  },
+  seats: {
+    container: 'bg-emerald-50 text-emerald-700',
+    icon: Users,
+  },
+  booked: {
+    container: 'bg-amber-50 text-amber-700',
+    icon: TrendingUp,
+  },
+  free: {
+    container: 'bg-slate-100 text-slate-700',
+    icon: Ticket,
+  },
+};
+
+function formatEventDate(dateString) {
+  const date = new Date(dateString);
+
+  return {
+    day: date.toLocaleDateString('en-IN', { day: '2-digit' }),
+    month: date.toLocaleDateString('en-IN', { month: 'short' }),
+    full: date.toLocaleDateString('en-IN', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    }),
+    time: date.toLocaleTimeString('en-IN', {
+      hour: '2-digit',
+      minute: '2-digit',
+    }),
+  };
+}
+
+function getFillWidth(event) {
+  if (!event.max_capacity) {
+    return 0;
+  }
+
+  return ((event.max_capacity - event.available_seats) / event.max_capacity) * 100;
 }
 
 export default function StudentDashboard() {
-  // ── State ──
-  const [events, setEvents]           = useState([]);
-  const [loading, setLoading]         = useState(true);
-  const [search, setSearch]           = useState('');
-  const [category, setCategory]       = useState('');
-  const [sortBy, setSortBy]           = useState('date');
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [category, setCategory] = useState('');
+  const [sortBy, setSortBy] = useState('date');
   const [selectedEvent, setSelectedEvent] = useState(null);
 
-  // ── Fetch events ──
   useEffect(() => {
     fetchEvents();
   }, [category, sortBy]);
 
   async function fetchEvents() {
     setLoading(true);
+
     try {
       const params = { status: 'upcoming', sort_by: sortBy };
-      if (category) params.category = category;
-      if (search)   params.search   = search;
 
-      const res = await api.get('/events', { params });
-      setEvents(res.data.data.events || []);
-    } catch (err) {
-      toast.error('Failed to load events. Is the backend running?');
+      if (category) {
+        params.category = category;
+      }
+
+      if (search) {
+        params.search = search;
+      }
+
+      const response = await api.get('/events', { params });
+      setEvents(response.data.data.events || []);
+    } catch {
+      toast.error('Failed to load events. Please try again.');
     } finally {
       setLoading(false);
     }
   }
 
-  function handleSearchSubmit(e) {
-    e.preventDefault();
+  function handleSearchSubmit(event) {
+    event.preventDefault();
     fetchEvents();
   }
 
-  function handleCategoryClick(catName) {
-    setCategory((prev) => (prev === catName ? '' : catName));
-  }
+  const totalEvents = events.length;
+  const totalSeats = events.reduce((sum, event) => sum + (event.max_capacity || 0), 0);
+  const availableSeats = events.reduce((sum, event) => sum + (event.available_seats || 0), 0);
+  const freeEvents = events.filter((event) => Number.parseFloat(event.registration_fee) === 0).length;
 
-  // ── Derived stats ──
-  const totalEvents    = events.length;
-  const totalSeats     = events.reduce((sum, e) => sum + (e.max_capacity || 0), 0);
-  const availableSeats = events.reduce((sum, e) => sum + (e.available_seats || 0), 0);
-  const freeEvents     = events.filter((e) => parseFloat(e.registration_fee) === 0).length;
+  const metrics = [
+    {
+      label: 'Upcoming events',
+      value: totalEvents,
+      style: METRIC_STYLES.events,
+    },
+    {
+      label: 'Seats available',
+      value: availableSeats,
+      style: METRIC_STYLES.seats,
+    },
+    {
+      label: 'Seats booked',
+      value: totalSeats - availableSeats,
+      style: METRIC_STYLES.booked,
+    },
+    {
+      label: 'Free events',
+      value: freeEvents,
+      style: METRIC_STYLES.free,
+    },
+  ];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 animate-fade-in">
-
-      {/* ── Page Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-purple-600
-                            flex items-center justify-center shadow-lg shadow-brand-500/20">
-              <Sparkles className="w-5 h-5 text-white" />
-            </div>
-            Discover Events
-          </h1>
-          <p className="text-gray-400 ml-[52px]">
-            Explore and register for upcoming campus events
-          </p>
+    <div className="page-shell space-y-8">
+      <header className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+        <div className="space-y-3">
+          <p className="section-eyebrow">Student dashboard</p>
+          <div className="space-y-2">
+            <h1 className="section-title">Discover upcoming campus events</h1>
+            <p className="section-copy max-w-2xl">
+              Browse what&apos;s happening next, filter by category, and register without leaving the page.
+            </p>
+          </div>
         </div>
 
-        {/* Sort control */}
-        <div className="flex items-center gap-2 ml-[52px] sm:ml-0">
-          <ArrowUpDown className="w-4 h-4 text-gray-500" />
+        <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+          <ArrowUpDown className="h-4 w-4 text-slate-400" />
+          <label htmlFor="event-sort" className="text-sm font-medium text-slate-600">
+            Sort by
+          </label>
           <select
+            id="event-sort"
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="text-sm bg-gray-800/50 border border-gray-700/50 rounded-lg px-3 py-1.5
-                       text-gray-300 cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+            onChange={(event) => setSortBy(event.target.value)}
+            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-100"
           >
-            <option value="date">Nearest First</option>
-            <option value="popularity">Most Popular</option>
+            <option value="date">Nearest first</option>
+            <option value="popularity">Most popular</option>
             <option value="name">Alphabetical</option>
           </select>
         </div>
-      </div>
+      </header>
 
-      {/* ── Stats Cards ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-        {[
-          { label: 'Upcoming',      value: totalEvents,                 icon: Calendar,    color: 'brand' },
-          { label: 'Seats Open',    value: availableSeats,              icon: Users,       color: 'emerald' },
-          { label: 'Total Booked',  value: totalSeats - availableSeats, icon: TrendingUp,  color: 'purple' },
-          { label: 'Free Events',   value: freeEvents,                  icon: Ticket,      color: 'amber' },
-        ].map((stat) => (
-          <div key={stat.label} className="glass-card p-4 flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-xl bg-${stat.color}-500/10 flex items-center justify-center shrink-0`}>
-              <stat.icon className={`w-5 h-5 text-${stat.color}-400`} />
-            </div>
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {metrics.map(({ label, style, value }) => {
+          const Icon = style.icon;
+
+          return (
+            <article key={label} className="glass-card p-5">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-medium text-slate-500">{label}</p>
+                  <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-900">{value}</p>
+                </div>
+                <div className={`flex h-11 w-11 items-center justify-center rounded-lg ${style.container}`}>
+                  <Icon className="h-5 w-5" />
+                </div>
+              </div>
+            </article>
+          );
+        })}
+      </section>
+
+      <section className="glass-card p-6">
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_220px]">
+          <form onSubmit={handleSearchSubmit} className="space-y-4">
             <div>
-              <p className="text-lg font-bold text-white leading-none">{stat.value}</p>
-              <p className="text-xs text-gray-500 mt-0.5">{stat.label}</p>
+              <label htmlFor="event-search" className="mb-2 block text-sm font-medium text-slate-700">
+                Search events
+              </label>
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  id="event-search"
+                  type="text"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Search by event name, topic, or keyword"
+                  className="input-field pl-11"
+                />
+              </div>
             </div>
+
+            <div>
+              <p className="mb-3 flex items-center gap-2 text-sm font-medium text-slate-700">
+                <SlidersHorizontal className="h-4 w-4 text-slate-400" />
+                Category
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCategory('')}
+                  className={`rounded-lg border px-3 py-2 text-sm font-medium transition ${
+                    category === ''
+                      ? 'border-brand-200 bg-brand-50 text-brand-700'
+                      : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  All events
+                </button>
+                {CATEGORY_OPTIONS.map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => setCategory((current) => (current === option ? '' : option))}
+                    className={`rounded-lg border px-3 py-2 text-sm font-medium transition ${
+                      category === option
+                        ? 'border-brand-200 bg-brand-50 text-brand-700'
+                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </form>
+
+          <div className="flex items-end lg:justify-end">
+            <button type="button" onClick={handleSearchSubmit} className="btn-primary w-full lg:w-auto">
+              <Search className="h-4 w-4" />
+              Apply filters
+            </button>
           </div>
-        ))}
-      </div>
-
-      {/* ── Category Pills ── */}
-      <div className="mb-6">
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
-          {/* All button */}
-          <button
-            onClick={() => setCategory('')}
-            className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium
-                       transition-all duration-200 border
-                       ${category === ''
-                         ? 'bg-white text-gray-900 border-white shadow-lg shadow-white/10'
-                         : 'bg-gray-800/30 text-gray-400 border-gray-700/30 hover:bg-gray-800/50 hover:text-gray-200'
-                       }`}
-          >
-            <SlidersHorizontal className="w-3.5 h-3.5" />
-            All Events
-          </button>
-
-          {CATEGORIES.map((cat) => {
-            const Icon     = cat.icon;
-            const isActive = category === cat.name;
-            return (
-              <button
-                key={cat.name}
-                onClick={() => handleCategoryClick(cat.name)}
-                className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium
-                           transition-all duration-200 border
-                           ${isActive
-                             ? `${cat.activeBg} text-white border-transparent shadow-lg`
-                             : `${cat.bg} ${cat.text} ${cat.border} hover:border-current/40`
-                           }`}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                {cat.name}
-              </button>
-            );
-          })}
         </div>
-      </div>
+      </section>
 
-      {/* ── Search Bar ── */}
-      <form onSubmit={handleSearchSubmit} className="glass-card p-3 mb-8">
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by event name, topic, or keyword..."
-              className="input-field pl-10 bg-gray-800/30"
-            />
-            {search && (
-              <button
-                type="button"
-                onClick={() => { setSearch(''); fetchEvents(); }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-          <button type="submit" className="btn-primary px-5">
-            <Search className="w-4 h-4" />
-          </button>
-        </div>
-      </form>
-
-      {/* ── Event Grid ── */}
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-3">
-          <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
-          <p className="text-sm text-gray-500">Loading events...</p>
+        <div className="flex min-h-[280px] items-center justify-center">
+          <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+            <Loader2 className="h-5 w-5 animate-spin text-brand-600" />
+            <span className="text-sm font-medium text-slate-600">Loading upcoming events</span>
+          </div>
         </div>
       ) : events.length === 0 ? (
-        <div className="glass-card p-16 text-center">
-          <Calendar className="w-14 h-14 text-gray-700 mx-auto mb-4" />
-          <p className="text-lg font-semibold text-gray-400 mb-1">No events found</p>
-          <p className="text-sm text-gray-600">
-            {category
-              ? `No upcoming ${category} events. Try a different category.`
-              : search
-                ? 'No results for your search. Try different keywords.'
-                : 'No upcoming events at the moment. Check back soon!'}
+        <section className="glass-card px-6 py-16 text-center">
+          <Calendar className="mx-auto h-10 w-10 text-slate-300" />
+          <h2 className="mt-5 text-xl font-semibold text-slate-900">No events match your filters</h2>
+          <p className="mt-3 text-sm leading-6 text-slate-500">
+            Try clearing the category or using a broader search term.
           </p>
           {(category || search) && (
             <button
-              onClick={() => { setCategory(''); setSearch(''); }}
-              className="btn-secondary mt-4 text-sm"
+              type="button"
+              onClick={() => {
+                setCategory('');
+                setSearch('');
+              }}
+              className="btn-secondary mt-6"
             >
-              Clear Filters
+              Clear filters
             </button>
           )}
-        </div>
+        </section>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {events.map((event, index) => {
-            const cat       = getCategoryStyle(event.category_name);
-            const fillPct   = event.max_capacity > 0
-              ? ((event.max_capacity - event.available_seats) / event.max_capacity * 100) : 0;
-            const isFull    = event.available_seats <= 0;
-            const eventDate = new Date(event.event_date);
-            const CatIcon   = cat.icon;
+        <section className="grid gap-5 lg:grid-cols-2 xl:grid-cols-3">
+          {events.map((event) => {
+            const date = formatEventDate(event.event_date);
+            const fillWidth = Math.min(100, getFillWidth(event));
+            const fullyBooked = event.available_seats <= 0;
+            const eventPrice = Number.parseFloat(event.registration_fee);
 
             return (
-              <div
-                key={event.event_id}
-                onClick={() => setSelectedEvent(event)}
-                className="glass-card overflow-hidden group hover:border-gray-700/70
-                           cursor-pointer transition-all duration-300 animate-slide-up flex flex-col"
-                style={{ animationDelay: `${index * 50}ms` }}
-              >
-                {/* Card Header — Gradient strip */}
-                <div className={`h-1.5 bg-gradient-to-r ${cat.gradient}`} />
-
-                <div className="p-5 flex-1 flex flex-col">
-
-                  {/* Top row — Category + Date */}
-                  <div className="flex items-center justify-between mb-3">
-                    <span className={`badge ${cat.bg} ${cat.text} border ${cat.border}`}>
-                      <CatIcon className="w-3 h-3 mr-1" />
+              <article key={event.event_id} className="glass-card flex h-full flex-col p-6 transition hover:-translate-y-0.5 hover:shadow-[0_18px_38px_rgba(15,23,42,0.08)]">
+                <div className="mb-6 flex items-start justify-between gap-4">
+                  <div className="space-y-3">
+                    <span className="badge border-slate-200 bg-slate-50 text-slate-600">
                       {event.category_name}
                     </span>
-                    <span className="text-xs text-gray-600">
-                      {eventDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                    </span>
+                    <div>
+                      <h2 className="text-xl font-semibold leading-8 text-slate-900">{event.event_name}</h2>
+                      {event.description && (
+                        <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-600">
+                          {event.description}
+                        </p>
+                      )}
+                    </div>
                   </div>
 
-                  {/* Title */}
-                  <h3 className="text-base font-bold text-white mb-2 leading-snug
-                                 group-hover:text-brand-300 transition-colors line-clamp-2">
-                    {event.event_name}
-                  </h3>
-
-                  {/* Description preview */}
-                  {event.description && (
-                    <p className="text-xs text-gray-500 mb-3 line-clamp-2 leading-relaxed">
-                      {event.description}
+                  <div className="min-w-[72px] rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-center">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                      {date.month}
                     </p>
-                  )}
-
-                  {/* Meta info */}
-                  <div className="space-y-2 text-xs text-gray-400 mb-4 flex-1">
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-3.5 h-3.5 text-gray-600 shrink-0" />
-                      <span>
-                        {eventDate.toLocaleDateString('en-IN', {
-                          weekday: 'short', day: 'numeric', month: 'short',
-                        })}
-                        {' • '}
-                        {eventDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <MapPin className="w-3.5 h-3.5 text-gray-600 shrink-0" />
-                      <span>{event.venue_name}{event.building ? `, ${event.building}` : ''}</span>
-                    </div>
-                    {parseFloat(event.registration_fee) > 0 && (
-                      <div className="flex items-center gap-2">
-                        <IndianRupee className="w-3.5 h-3.5 text-gray-600 shrink-0" />
-                        <span>₹{parseFloat(event.registration_fee).toFixed(0)}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* ── Capacity bar ── */}
-                  <div className="mb-3">
-                    <div className="flex items-center justify-between text-[11px] mb-1">
-                      <span className="text-gray-500 flex items-center gap-1">
-                        <Users className="w-3 h-3" /> Capacity
-                      </span>
-                      <span>
-                        <span className={isFull ? 'text-red-400 font-semibold' : 'text-emerald-400 font-semibold'}>
-                          {event.available_seats}
-                        </span>
-                        <span className="text-gray-600"> / {event.max_capacity}</span>
-                      </span>
-                    </div>
-                    <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all duration-700 ${
-                          isFull       ? 'bg-gradient-to-r from-red-600 to-red-400' :
-                          fillPct > 75 ? 'bg-gradient-to-r from-amber-600 to-amber-400' :
-                                         'bg-gradient-to-r from-emerald-600 to-emerald-400'
-                        }`}
-                        style={{ width: `${Math.min(100, fillPct)}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* CTA */}
-                  <div className={`text-center py-2 rounded-lg text-xs font-semibold transition-all
-                    ${isFull
-                      ? 'bg-red-500/5 text-red-400/60'
-                      : 'bg-brand-500/5 text-brand-400 group-hover:bg-brand-500/10'
-                    }`}
-                  >
-                    {isFull ? 'Fully Booked' : 'View Details & Register →'}
+                    <p className="mt-1 text-2xl font-semibold text-slate-900">{date.day}</p>
                   </div>
                 </div>
-              </div>
+
+                <div className="space-y-3 text-sm text-slate-600">
+                  <div className="flex items-center gap-2">
+                    <Clock3 className="h-4 w-4 text-slate-400" />
+                    <span>{date.full} at {date.time}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-slate-400" />
+                    <span>
+                      {event.venue_name}
+                      {event.building ? `, ${event.building}` : ''}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <IndianRupee className="h-4 w-4 text-slate-400" />
+                    <span>{eventPrice > 0 ? `₹${eventPrice.toFixed(0)}` : 'Free to attend'}</span>
+                  </div>
+                </div>
+
+                <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium text-slate-700">Seat availability</span>
+                    <span className={`font-semibold ${fullyBooked ? 'text-red-600' : 'text-slate-900'}`}>
+                      {event.available_seats} / {event.max_capacity}
+                    </span>
+                  </div>
+                  <div className="mt-3 h-2 rounded-full bg-slate-200">
+                    <div
+                      className={`h-2 rounded-full ${fullyBooked ? 'bg-red-500' : 'bg-brand-500'}`}
+                      style={{ width: `${fillWidth}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-6 flex items-center justify-between gap-4">
+                  <div className="text-sm text-slate-500">
+                    {fullyBooked ? 'Registration closed' : 'Seats still available'}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedEvent(event)}
+                    className="btn-primary"
+                  >
+                    View details
+                  </button>
+                </div>
+              </article>
             );
           })}
-        </div>
+        </section>
       )}
 
-      {/* ── Event Detail Modal ── */}
       {selectedEvent && (
         <EventDetailModal
           event={selectedEvent}

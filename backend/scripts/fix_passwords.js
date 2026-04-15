@@ -1,7 +1,3 @@
-/**
- * One-time script to set real bcrypt hashes for all seed users.
- * Run: node scripts/fix_passwords.js
- */
 require('dotenv').config();
 const bcrypt = require('bcryptjs');
 const mysql  = require('mysql2/promise');

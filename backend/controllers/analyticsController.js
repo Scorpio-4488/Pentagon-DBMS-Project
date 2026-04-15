@@ -1,25 +1,5 @@
-/**
- * ============================================================
- * Analytics Controller — Aggregation & Reporting Queries
- * ============================================================
- *
- * Exposes the analytical SQL queries from 04_queries.sql as
- * API endpoints. These are read-only operations that compute
- * attendance rates, feedback scores, department participation,
- * and trend reports.
- *
- * Raw SQL only — no ORM.
- * ============================================================
- */
-
 const { pool } = require('../config/db');
 
-/**
- * GET /api/analytics/events/:id/attendance
- *
- * Compute the attendance rate for a specific event.
- * Compares total registrations against check-in records.
- */
 async function getAttendanceRate(req, res) {
   try {
     const event_id = parseInt(req.params.id);
@@ -61,11 +41,6 @@ async function getAttendanceRate(req, res) {
   }
 }
 
-/**
- * GET /api/analytics/events/:id/feedback
- *
- * Compute feedback summary statistics for a specific event.
- */
 async function getFeedbackStats(req, res) {
   try {
     const event_id = parseInt(req.params.id);
@@ -103,13 +78,6 @@ async function getFeedbackStats(req, res) {
   }
 }
 
-/**
- * GET /api/analytics/departments
- *
- * Department-wise registration analytics.
- * Shows total registrations, unique events, and unique students
- * per department.
- */
 async function getDepartmentStats(req, res) {
   try {
     const sql = `
@@ -140,15 +108,6 @@ async function getDepartmentStats(req, res) {
   }
 }
 
-/**
- * GET /api/analytics/trends
- *
- * Monthly event trend report.
- * Aggregates events, registrations, and averages by month.
- *
- * Query params:
- *   ?months=12   — How many past months to include (default: 12)
- */
 async function getMonthlyTrends(req, res) {
   try {
     const months = Math.min(36, Math.max(1, parseInt(req.query.months) || 12));
@@ -181,14 +140,6 @@ async function getMonthlyTrends(req, res) {
   }
 }
 
-/**
- * GET /api/analytics/popular-events
- *
- * Top events ranked by fill rate (registration percentage).
- *
- * Query params:
- *   ?limit=10   — Number of results (default: 10, max: 50)
- */
 async function getPopularEvents(req, res) {
   try {
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 10));
@@ -225,14 +176,6 @@ async function getPopularEvents(req, res) {
   }
 }
 
-/**
- * GET /api/analytics/student-engagement
- *
- * Per-student engagement summary — events registered, attended,
- * completed, and feedback count.
- *
- * Requires: admin role.
- */
 async function getStudentEngagement(req, res) {
   try {
     const sql = `

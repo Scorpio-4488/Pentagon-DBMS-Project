@@ -2,99 +2,116 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ─── Base Styles ─── */
 @layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  html {
+    @apply bg-slate-50;
+  }
+
   body {
-    @apply bg-gray-950 text-gray-100 font-sans;
+    @apply min-h-screen bg-[#f8f9fb] font-sans text-[#1a1a1a] antialiased;
   }
 
-  /* Custom scrollbar */
+  #root {
+    min-height: 100vh;
+  }
+
+  ::selection {
+    @apply bg-brand-100 text-brand-900;
+  }
+
   ::-webkit-scrollbar {
-    width: 6px;
+    width: 10px;
+    height: 10px;
   }
+
   ::-webkit-scrollbar-track {
-    @apply bg-gray-900;
+    @apply bg-slate-100;
   }
+
   ::-webkit-scrollbar-thumb {
-    @apply bg-gray-700 rounded-full;
+    @apply rounded-full border-2 border-slate-100 bg-slate-300;
   }
+
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-gray-600;
+    @apply bg-slate-400;
   }
 }
 
-/* ─── Reusable Component Classes ─── */
 @layer components {
-  /* Glass card effect */
+  .page-shell {
+    @apply mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8;
+  }
+
   .glass-card {
-    @apply bg-gray-900/60 backdrop-blur-xl border border-gray-800/50 rounded-2xl;
+    @apply rounded-2xl border border-slate-200 bg-white shadow-[0_12px_30px_rgba(15,23,42,0.06)];
   }
 
-  /* Gradient text utility */
-  .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-brand-400 via-purple-400 to-pink-400;
+  .section-eyebrow {
+    @apply text-sm font-semibold uppercase tracking-[0.16em] text-brand-600;
   }
 
-  /* Input field styling */
+  .section-title {
+    @apply text-3xl font-semibold tracking-tight text-slate-900;
+  }
+
+  .section-copy {
+    @apply text-base leading-7 text-slate-600;
+  }
+
   .input-field {
-    @apply w-full px-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-xl
-           text-gray-100 placeholder-gray-500
-           focus:outline-none focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500/50
-           transition-all duration-200;
+    @apply w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-base text-slate-900
+           placeholder:text-slate-400 transition
+           focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-100;
   }
 
-  /* Primary button */
   .btn-primary {
-    @apply px-6 py-3 bg-gradient-to-r from-brand-600 to-brand-500
-           text-white font-semibold rounded-xl
-           hover:from-brand-500 hover:to-brand-400
-           focus:outline-none focus:ring-2 focus:ring-brand-500/50
-           disabled:opacity-50 disabled:cursor-not-allowed
-           transform hover:scale-[1.02] active:scale-[0.98]
-           transition-all duration-200 shadow-lg shadow-brand-500/25;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-5 py-3
+           text-sm font-semibold text-white shadow-sm transition
+           hover:bg-brand-700
+           focus:outline-none focus:ring-4 focus:ring-brand-100
+           disabled:cursor-not-allowed disabled:opacity-60;
   }
 
-  /* Secondary / outline button */
   .btn-secondary {
-    @apply px-5 py-2.5 bg-gray-800/50 border border-gray-700/50
-           text-gray-300 font-medium rounded-xl
-           hover:bg-gray-700/50 hover:text-white hover:border-gray-600/50
-           focus:outline-none focus:ring-2 focus:ring-gray-500/30
-           transition-all duration-200;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5
+           text-sm font-medium text-slate-700 transition
+           hover:bg-slate-50
+           focus:outline-none focus:ring-4 focus:ring-slate-100;
   }
 
-  /* Danger button */
   .btn-danger {
-    @apply px-5 py-2.5 bg-red-500/10 border border-red-500/30
-           text-red-400 font-medium rounded-xl
-           hover:bg-red-500/20 hover:border-red-500/50
-           transition-all duration-200;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2.5
+           text-sm font-semibold text-red-600 transition
+           hover:bg-red-50
+           focus:outline-none focus:ring-4 focus:ring-red-100;
   }
 
-  /* Status badge */
   .badge {
-    @apply inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold uppercase tracking-wider;
+    @apply inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-semibold;
   }
 }
 
-/* ─── Utility Overrides ─── */
 @layer utilities {
-  /* Hide scrollbar but keep scroll functionality */
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
 
-  /* Line clamp utilities */
   .line-clamp-2 {
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+
   .line-clamp-3 {
     display: -webkit-box;
     -webkit-line-clamp: 3;

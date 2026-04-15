@@ -1,15 +1,5 @@
--- ============================================================
--- College Event Management System — Application Queries
--- Optimized MySQL queries for CRUD and analytics
--- ============================================================
-
 USE college_events;
 
--- ══════════════════════════════════════════════
--- SECTION A: DATA RETRIEVAL (SELECT + JOINs)
--- ══════════════════════════════════════════════
-
--- A1. Full event listing with category, venue, and organizer
 SELECT
     e.event_id,
     e.event_name,
@@ -30,8 +20,6 @@ FROM events e
 WHERE e.status = 'upcoming'
 ORDER BY e.event_date ASC;
 
-
--- A2. Full-text search for events
 SELECT
     e.event_id,
     e.event_name,
@@ -44,8 +32,6 @@ FROM events e
 WHERE MATCH(e.event_name, e.description) AGAINST('hackathon coding' IN NATURAL LANGUAGE MODE)
 ORDER BY relevance DESC;
 
-
--- A3. Filter events by category and date range
 SELECT
     e.event_id,
     e.event_name,
@@ -61,8 +47,6 @@ WHERE ec.category_name = 'Technical'
   AND e.status = 'upcoming'
 ORDER BY e.event_date ASC;
 
-
--- A4. Fetch all events a student is registered for
 SELECT
     e.event_id,
     e.event_name,
@@ -75,11 +59,9 @@ FROM registrations r
     INNER JOIN events e            ON r.event_id    = e.event_id
     INNER JOIN event_categories ec ON e.category_id = ec.category_id
     INNER JOIN venues v            ON e.venue_id    = v.venue_id
-WHERE r.user_id = 4   -- @param: student user_id
+WHERE r.user_id = 4
 ORDER BY e.event_date DESC;
 
-
--- A5. Popular events ranked by fill rate
 SELECT
     e.event_id,
     e.event_name,
@@ -93,8 +75,6 @@ WHERE e.status IN ('upcoming', 'ongoing')
 ORDER BY fill_rate_pct DESC
 LIMIT 10;
 
-
--- A6. Get event detail with participant list (for organizers)
 SELECT
     u.user_id,
     CONCAT(u.first_name, ' ', u.last_name) AS student_name,
@@ -106,16 +86,10 @@ SELECT
 FROM registrations r
     INNER JOIN users u      ON r.user_id         = u.user_id
     LEFT  JOIN attendance a ON r.registration_id  = a.registration_id
-WHERE r.event_id = 1   -- @param: event_id
+WHERE r.event_id = 1
   AND r.status != 'cancelled'
 ORDER BY r.registered_at ASC;
 
-
--- ══════════════════════════════════════════════
--- SECTION B: UPDATES
--- ══════════════════════════════════════════════
-
--- B1. Update event details
 UPDATE events
 SET
     event_name   = 'CodeStorm 2026 — National Hackathon',
@@ -124,20 +98,12 @@ SET
     updated_at   = CURRENT_TIMESTAMP
 WHERE event_id = 1;
 
-
--- B2. Mark attendance (inline — see sp_mark_attendance for safe version)
 INSERT INTO attendance (registration_id, check_in_time, method)
 SELECT r.registration_id, NOW(), 'qr_scan'
 FROM registrations r
 WHERE r.user_id = 4 AND r.event_id = 1 AND r.status = 'registered'
 ON DUPLICATE KEY UPDATE check_in_time = NOW();
 
-
--- ══════════════════════════════════════════════
--- SECTION C: AGGREGATIONS & ANALYTICS
--- ══════════════════════════════════════════════
-
--- C1. Event attendance rate
 SELECT
     e.event_id,
     e.event_name,
@@ -149,11 +115,9 @@ SELECT
 FROM events e
     LEFT JOIN registrations r ON e.event_id = r.event_id AND r.status != 'cancelled'
     LEFT JOIN attendance a    ON r.registration_id = a.registration_id
-WHERE e.event_id = 7   -- @param
+WHERE e.event_id = 7
 GROUP BY e.event_id, e.event_name, e.max_capacity, e.available_seats;
 
-
--- C2. Average feedback score per event
 SELECT
     e.event_id,
     e.event_name,
@@ -166,8 +130,6 @@ FROM events e
 GROUP BY e.event_id, e.event_name
 ORDER BY avg_rating DESC;
 
-
--- C3. Department-wise registration analytics
 SELECT
     u.department,
     COUNT(DISTINCT r.registration_id) AS total_registrations,
@@ -179,8 +141,6 @@ WHERE r.status != 'cancelled'
 GROUP BY u.department
 ORDER BY total_registrations DESC;
 
-
--- C4. Monthly event trend report
 SELECT
     DATE_FORMAT(event_date, '%Y-%m')    AS month,
     COUNT(*)                            AS total_events,
@@ -191,8 +151,6 @@ WHERE status != 'cancelled'
 GROUP BY DATE_FORMAT(event_date, '%Y-%m')
 ORDER BY month DESC;
 
-
--- C5. Top-rated events (with minimum review threshold)
 SELECT
     e.event_id,
     e.event_name,
@@ -206,8 +164,6 @@ GROUP BY e.event_id, e.event_name, ec.category_name
 HAVING COUNT(f.feedback_id) >= 3   -- minimum 3 reviews
 ORDER BY avg_rating DESC, review_count DESC;
 
-
--- C6. Student engagement summary (how active each student is)
 SELECT
     u.user_id,
     CONCAT(u.first_name, ' ', u.last_name) AS student_name,

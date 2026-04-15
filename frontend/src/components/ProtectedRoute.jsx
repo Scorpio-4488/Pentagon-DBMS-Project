@@ -1,45 +1,29 @@
-/**
- * ============================================================
- * Protected Route Wrapper
- * ============================================================
- *
- * Restricts route access based on authentication and role.
- * Redirects unauthenticated users to /login and unauthorized
- * users to their appropriate dashboard.
- * ============================================================
- */
-
 import { Navigate } from 'react-router-dom';
+
 import { useAuth } from '../context/AuthContext';
 
-/**
- * @param {string[]} allowedRoles - Roles permitted to access this route.
- *                                  If empty, any authenticated user can access.
- * @param {React.ReactNode} children - The protected component to render.
- */
-export default function ProtectedRoute({ allowedRoles = [], children }) {
-  const { user, loading, isAuthenticated } = useAuth();
+function LoadingScreen() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-[#f8f9fb]">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
+    </div>
+  );
+}
 
-  // Show nothing while restoring auth state from localStorage
+export default function ProtectedRoute({ allowedRoles = [], children }) {
+  const { isAuthenticated, loading, user } = useAuth();
+
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
-  // Not logged in → redirect to login
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  // Logged in but wrong role → redirect to their dashboard
   if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
-    const redirectPath = user.role === 'student'
-      ? '/student/dashboard'
-      : '/admin/dashboard';
-    return <Navigate to={redirectPath} replace />;
+    const redirectTo = user.role === 'student' ? '/student/dashboard' : '/admin/dashboard';
+    return <Navigate to={redirectTo} replace />;
   }
 
   return children;

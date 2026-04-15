@@ -1,32 +1,5 @@
-/**
- * ============================================================
- * Event Controller — CRUD Operations for Events
- * ============================================================
- *
- * Handles creation, retrieval, update, and cancellation of
- * events. Executes raw SQL queries and stored procedures
- * directly against the MySQL database — no ORM.
- *
- * Query patterns mirror those defined in 04_queries.sql.
- * ============================================================
- */
-
 const { pool } = require('../config/db');
 
-/**
- * GET /api/events
- *
- * List events with optional filters and search.
- *
- * Query params:
- *   ?status=upcoming        — Filter by event status
- *   ?category=Technical     — Filter by category name
- *   ?search=hackathon       — Full-text search on name + description
- *   ?date_from=2026-05-01   — Events starting on or after this date
- *   ?date_to=2026-06-30     — Events starting on or before this date
- *   ?sort_by=popularity     — Sort by fill rate (default: event_date ASC)
- *   ?page=1&limit=20        — Pagination
- */
 async function listEvents(req, res) {
   try {
     const {
@@ -40,7 +13,6 @@ async function listEvents(req, res) {
       limit = 20,
     } = req.query;
 
-    // ── Build dynamic WHERE clause ──
     const conditions = [];
     const params     = [];
 
@@ -64,20 +36,18 @@ async function listEvents(req, res) {
       params.push(date_to);
     }
 
-    // Full-text search requires a separate approach
     let searchClause = '';
     let relevanceSelect = '';
     if (search) {
       searchClause = 'AND MATCH(e.event_name, e.description) AGAINST(? IN NATURAL LANGUAGE MODE)';
       relevanceSelect = ', MATCH(e.event_name, e.description) AGAINST(? IN NATURAL LANGUAGE MODE) AS relevance';
-      params.push(search); // for WHERE
+      params.push(search);
     }
 
     const whereSQL = conditions.length > 0
       ? 'WHERE ' + conditions.join(' AND ') + ' ' + searchClause
       : (searchClause ? 'WHERE 1=1 ' + searchClause : '');
 
-    // ── Sorting ──
     let orderSQL;
     switch (sort_by) {
       case 'popularity':
@@ -96,12 +66,10 @@ async function listEvents(req, res) {
         orderSQL = 'ORDER BY e.event_date ASC';
     }
 
-    // ── Pagination ──
     const pageNum   = Math.max(1, parseInt(page) || 1);
     const limitVal  = Math.min(100, Math.max(1, parseInt(limit) || 20));
     const offset    = (pageNum - 1) * limitVal;
 
-    // ── Count total matching rows (for pagination metadata) ──
     const countParams = [...params];
     const countSQL = `
       SELECT COUNT(*) AS total
@@ -112,9 +80,6 @@ async function listEvents(req, res) {
     const [countRows] = await pool.query(countSQL, countParams);
     const total = countRows[0].total;
 
-    // ── Fetch page of results ──
-    // For the main query, if search is used we need the param twice
-    // (once for SELECT relevance, once for WHERE)
     const mainParams = search ? [search, ...params] : [...params];
     mainParams.push(limitVal, offset);
 
@@ -172,12 +137,6 @@ async function listEvents(req, res) {
   }
 }
 
-/**
- * GET /api/events/:id
- *
- * Fetch full details of a single event, including venue,
- * category, organizer, and participant count.
- */
 async function getEvent(req, res) {
   try {
     const { id } = req.params;
@@ -233,15 +192,6 @@ async function getEvent(req, res) {
   }
 }
 
-/**
- * POST /api/events
- *
- * Create a new event.
- * Requires: organizer or admin role.
- *
- * Body: { event_name, description, category_id, venue_id, event_date,
- *         end_date?, max_capacity, registration_fee?, banner_url? }
- */
 async function createEvent(req, res) {
   try {
     const {
@@ -256,7 +206,6 @@ async function createEvent(req, res) {
       banner_url   = null,
     } = req.body;
 
-    // ── Input validation ──
     if (!event_name || !category_id || !venue_id || !event_date || !max_capacity) {
       return res.status(400).json({
         success: false,
@@ -274,7 +223,6 @@ async function createEvent(req, res) {
       });
     }
 
-    // The organizer is the authenticated user
     const organizer_id = req.user.user_id;
 
     const sql = `
@@ -286,14 +234,12 @@ async function createEvent(req, res) {
     `;
     const [result] = await pool.execute(sql, [
       event_name, description, category_id, venue_id, organizer_id,
-      event_date, end_date, max_capacity, max_capacity, // available_seats starts at max
+      event_date, end_date, max_capacity, max_capacity,
       registration_fee, banner_url,
     ]);
 
     const newEventId = result.insertId;
 
-    // ── Notify all students about the new event ──
-    // Single INSERT...SELECT — no JS loop, fully server-side
     const eventDateFormatted = new Date(event_date).toLocaleDateString('en-IN', {
       day: 'numeric', month: 'short', year: 'numeric',
     });
@@ -315,7 +261,7 @@ async function createEvent(req, res) {
         `A new event "${event_name}" has been announced for ${eventDateFormatted}. Check it out and register before seats fill up!`,
       ]);
     } catch (notifErr) {
-      // Log but don't fail the request — the event was created successfully
+
       console.error('[EventController] Failed to broadcast notifications:', notifErr.message);
     }
 
@@ -332,7 +278,7 @@ async function createEvent(req, res) {
     });
 
   } catch (err) {
-    // ── Handle FK constraint violations ──
+
     if (err.code === 'ER_NO_REFERENCED_ROW_2') {
       return res.status(400).json({
         success: false,
@@ -343,7 +289,6 @@ async function createEvent(req, res) {
       });
     }
 
-    // ── Handle CHECK constraint violations (MySQL 8.0.16+) ──
     if (err.code === 'ER_CHECK_CONSTRAINT_VIOLATED' || err.errno === 3819) {
       return res.status(400).json({
         success: false,
@@ -362,20 +307,10 @@ async function createEvent(req, res) {
   }
 }
 
-/**
- * PUT /api/events/:id
- *
- * Update an existing event's details.
- * Requires: organizer (owner) or admin role.
- *
- * Body: Any subset of { event_name, description, category_id, venue_id,
- *        event_date, end_date, max_capacity, registration_fee, status, banner_url }
- */
 async function updateEvent(req, res) {
   try {
     const { id } = req.params;
 
-    // ── Verify event exists and user is the owner (or admin) ──
     const [existing] = await pool.execute(
       'SELECT event_id, organizer_id, max_capacity, available_seats FROM events WHERE event_id = ?',
       [id]
@@ -388,7 +323,6 @@ async function updateEvent(req, res) {
       });
     }
 
-    // Only the organizer who created the event or an admin can update
     if (req.user.role !== 'admin' && existing[0].organizer_id !== req.user.user_id) {
       return res.status(403).json({
         success: false,
@@ -396,7 +330,6 @@ async function updateEvent(req, res) {
       });
     }
 
-    // ── Build dynamic SET clause from provided fields ──
     const allowedFields = [
       'event_name', 'description', 'category_id', 'venue_id',
       'event_date', 'end_date', 'registration_fee', 'status', 'banner_url',
@@ -412,7 +345,6 @@ async function updateEvent(req, res) {
       }
     }
 
-    // Handle max_capacity change — also adjust available_seats proportionally
     if (req.body.max_capacity !== undefined) {
       const newMax = parseInt(req.body.max_capacity);
       const oldMax = existing[0].max_capacity;
@@ -440,12 +372,11 @@ async function updateEvent(req, res) {
       });
     }
 
-    params.push(id); // WHERE event_id = ?
+    params.push(id);
 
     const sql = `UPDATE events SET ${setClauses.join(', ')} WHERE event_id = ?`;
     await pool.execute(sql, params);
 
-    // Fetch updated event and return
     const [updated] = await pool.execute(
       'SELECT * FROM events WHERE event_id = ?', [id]
     );
@@ -474,20 +405,10 @@ async function updateEvent(req, res) {
   }
 }
 
-/**
- * DELETE /api/events/:id/cancel
- *
- * Cancel an event using the sp_cancel_event stored procedure.
- * This atomically cancels all registrations, restores seats,
- * and sends notifications to affected users.
- *
- * Requires: organizer (owner) or admin role.
- */
 async function cancelEvent(req, res) {
   try {
     const { id } = req.params;
 
-    // ── Verify ownership ──
     const [existing] = await pool.execute(
       'SELECT organizer_id FROM events WHERE event_id = ?', [id]
     );
@@ -506,7 +427,6 @@ async function cancelEvent(req, res) {
       });
     }
 
-    // ── Call stored procedure (must use pool.query for @session vars) ──
     const [rows] = await pool.query('CALL sp_cancel_event(?, @result)', [id]);
     const [[{ '@result': result }]] = await pool.query('SELECT @result');
 
@@ -537,14 +457,6 @@ async function cancelEvent(req, res) {
   }
 }
 
-/**
- * GET /api/events/:id/participants
- *
- * List all registered participants for an event, including
- * their attendance status.
- *
- * Requires: organizer (owner) or admin role.
- */
 async function getParticipants(req, res) {
   try {
     const { id } = req.params;

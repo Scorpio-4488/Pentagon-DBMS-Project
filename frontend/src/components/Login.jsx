@@ -1,99 +1,102 @@
-/**
- * ============================================================
- * Login Page Component
- * ============================================================
- *
- * Clean login form that:
- *   1. POSTs credentials to /api/auth/login
- *   2. Stores JWT + user data via AuthContext
- *   3. Redirects based on role (admin/organizer → admin dashboard,
- *      student → student dashboard)
- * ============================================================
- */
-
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { ArrowRight, Eye, EyeOff, Lock, Mail } from 'lucide-react';
+
 import { useAuth } from '../context/AuthContext';
 import { toast } from './Toast';
-import { Sparkles, Mail, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react';
+
+const DEMO_ACCOUNTS = [
+  ['Student', 'sneha.reddy@iiit-bh.ac.in'],
+  ['Organizer', 'priya.sharma@iiit-bh.ac.in'],
+  ['Admin', 'arjun.mehta@iiit-bh.ac.in'],
+];
 
 export default function Login() {
-  const [email, setEmail]       = useState('');
-  const [password, setPassword] = useState('');
-  const [showPw, setShowPw]     = useState(false);
-  const [loading, setLoading]   = useState(false);
-  const { login }   = useAuth();
-  const navigate     = useNavigate();
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
-  async function handleSubmit(e) {
-    e.preventDefault();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit(event) {
+    event.preventDefault();
 
     if (!email || !password) {
       toast.error('Please fill in all fields.');
       return;
     }
 
+    if (!email.toLowerCase().endsWith('@iiit-bh.ac.in')) {
+      toast.error('Only IIIT Bhubaneswar emails (@iiit-bh.ac.in) are allowed.');
+      return;
+    }
+
     setLoading(true);
+
     try {
       const user = await login(email, password);
-
       toast.success(`Welcome back, ${user.first_name}!`);
-
-      // Redirect based on role
-      if (user.role === 'admin' || user.role === 'organizer') {
-        navigate('/admin/dashboard');
-      } else {
-        navigate('/student/dashboard');
-      }
-    } catch (err) {
-      const msg = err.response?.data?.error?.message || 'Login failed. Please try again.';
-      toast.error(msg);
+      navigate(user.role === 'student' ? '/student/dashboard' : '/admin/dashboard');
+    } catch (error) {
+      toast.error(error.response?.data?.error?.message || 'Login failed. Please try again.');
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden">
-
-      {/* ── Background Effects ── */}
-      <div className="absolute inset-0 -z-10">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-brand-600/20 rounded-full blur-[128px] animate-pulse-slow" />
-        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-purple-600/15 rounded-full blur-[128px] animate-pulse-slow" />
-      </div>
-
-      <div className="w-full max-w-md animate-fade-in">
-
-        {/* ── Brand Header ── */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl
-                          bg-gradient-to-br from-brand-500 to-purple-600
-                          shadow-2xl shadow-brand-500/30 mb-5">
-            <Sparkles className="w-8 h-8 text-white" />
+    <div className="min-h-screen bg-[#f8f9fb]">
+      <div className="mx-auto grid min-h-screen max-w-6xl items-center gap-12 px-4 py-16 sm:px-6 lg:grid-cols-[1.1fr,0.9fr] lg:px-8">
+        <section className="space-y-8">
+          <div className="space-y-4">
+            <p className="section-eyebrow">Campus event platform</p>
+            <h1 className="section-title max-w-xl">
+              Manage registrations, attendance, and campus events from one clean dashboard.
+            </h1>
+            <p className="section-copy max-w-xl">
+              CampusHub keeps the workflow straightforward for students, organizers, and admins. Sign in with your institutional email to continue.
+            </p>
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">
-            Welcome to <span className="text-gradient">CampusHub</span>
-          </h1>
-          <p className="text-gray-400">Sign in to manage your campus events</p>
-        </div>
 
-        {/* ── Login Form ── */}
-        <div className="glass-card p-8">
+          <div className="glass-card max-w-xl p-6 sm:p-8">
+            <h2 className="text-lg font-semibold text-slate-900">Demo access</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Use any of the seeded accounts below with the password <span className="font-medium text-slate-900">Password123!</span>.
+            </p>
+            <div className="mt-6 space-y-4">
+              {DEMO_ACCOUNTS.map(([role, value]) => (
+                <div key={role} className="flex flex-col gap-1 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                  <span className="text-sm font-medium text-slate-700">{role}</span>
+                  <span className="text-sm text-slate-500">{value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="glass-card p-8 sm:p-10">
+          <div className="mb-8">
+            <h2 className="text-2xl font-semibold text-slate-900">Sign in</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Use your IIIT Bhubaneswar email address to access the portal.
+            </p>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-5">
-
-            {/* Email */}
             <div>
-              <label htmlFor="login-email" className="block text-sm font-medium text-gray-300 mb-2">
-                Email Address
+              <label htmlFor="login-email" className="mb-2 block text-sm font-medium text-slate-700">
+                Email address
               </label>
               <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <input
                   id="login-email"
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@university.edu"
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="yourname@iiit-bh.ac.in"
                   className="input-field pl-11"
                   autoComplete="email"
                   required
@@ -101,69 +104,51 @@ export default function Login() {
               </div>
             </div>
 
-            {/* Password */}
             <div>
-              <label htmlFor="login-password" className="block text-sm font-medium text-gray-300 mb-2">
+              <label htmlFor="login-password" className="mb-2 block text-sm font-medium text-slate-700">
                 Password
               </label>
               <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                <Lock className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <input
                   id="login-password"
-                  type={showPw ? 'text' : 'password'}
+                  type={showPassword ? 'text' : 'password'}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="Enter your password"
                   className="input-field pl-11 pr-11"
                   autoComplete="current-password"
                   required
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPw(!showPw)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+                  onClick={() => setShowPassword((current) => !current)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
                 >
-                  {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </div>
 
-            {/* Submit */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn-primary w-full flex items-center justify-center gap-2"
-            >
+            <button type="submit" disabled={loading} className="btn-primary w-full">
               {loading ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
               ) : (
                 <>
-                  Sign In
-                  <ArrowRight className="w-4 h-4" />
+                  Sign in
+                  <ArrowRight className="h-4 w-4" />
                 </>
               )}
             </button>
           </form>
 
-          {/* ── Demo Credentials ── */}
-          <div className="mt-6 p-4 rounded-xl bg-brand-500/5 border border-brand-500/10">
-            <p className="text-xs font-semibold text-brand-400 uppercase tracking-wider mb-2">Demo Credentials</p>
-            <div className="space-y-1.5 text-xs text-gray-400">
-              <p><span className="text-gray-500">Student:</span> sneha.reddy@university.edu</p>
-              <p><span className="text-gray-500">Organizer:</span> priya.sharma@university.edu</p>
-              <p><span className="text-gray-500">Admin:</span> arjun.mehta@university.edu</p>
-              <p><span className="text-gray-500">Password:</span> Password123!</p>
-            </div>
-          </div>
-        </div>
-
-        {/* ── Register Link ── */}
-        <p className="text-center text-sm text-gray-500 mt-6">
-          Don&apos;t have an account?{' '}
-          <Link to="/register" className="text-brand-400 hover:text-brand-300 font-medium transition-colors">
-            Create one
-          </Link>
-        </p>
+          <p className="mt-8 text-sm text-slate-500">
+            Don&apos;t have an account?{' '}
+            <Link to="/register" className="font-semibold text-brand-700 transition hover:text-brand-800">
+              Create one
+            </Link>
+          </p>
+        </section>
       </div>
     </div>
   );

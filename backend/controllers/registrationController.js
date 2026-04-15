@@ -1,46 +1,17 @@
-/**
- * ============================================================
- * Registration Controller — Student Registration & Attendance
- * ============================================================
- *
- * Handles event registration, cancellation, and attendance
- * marking. The core registration logic delegates to the
- * sp_register_student stored procedure for concurrency-safe
- * seat management using SELECT ... FOR UPDATE.
- *
- * IMPORTANT: Uses pool.query() instead of pool.execute() for
- * stored procedure calls because MySQL prepared statements
- * (pool.execute) do NOT support session variables (@result).
- *
- * Raw SQL only — no ORM.
- * ============================================================
- */
-
 const crypto = require('crypto');
 const { pool } = require('../config/db');
 
-/**
- * POST /api/events/:id/register
- *
- * Register the authenticated student for an event.
- * Calls sp_register_student stored procedure.
- *
- * Requires: student role.
- */
 async function registerForEvent(req, res) {
   try {
     const event_id = parseInt(req.params.id);
     const user_id  = req.user.user_id;
 
-    // ── Call the concurrency-safe stored procedure ──
-    // Use pool.query (NOT pool.execute) because @result is a session variable
     await pool.query('CALL sp_register_student(?, ?, @result)', [user_id, event_id]);
     const [[{ '@result': result }]] = await pool.query('SELECT @result');
 
-    // ── Map stored procedure result to HTTP response ──
     switch (result) {
       case 'SUCCESS': {
-        // Fetch the created registration details for the response
+
         const [regRows] = await pool.query(
           `SELECT r.registration_id, r.user_id, r.event_id, r.status, r.registered_at,
                   e.available_seats AS available_seats_remaining
@@ -101,14 +72,6 @@ async function registerForEvent(req, res) {
   }
 }
 
-/**
- * DELETE /api/events/:id/register
- *
- * Cancel the authenticated student's registration.
- * Calls sp_cancel_registration stored procedure.
- *
- * Requires: student role.
- */
 async function cancelRegistration(req, res) {
   try {
     const event_id = parseInt(req.params.id);
@@ -163,14 +126,6 @@ async function cancelRegistration(req, res) {
   }
 }
 
-/**
- * GET /api/users/me/registrations
- *
- * List all events the authenticated student is registered for.
- *
- * Query params:
- *   ?status=registered   — Filter by registration status
- */
 async function getMyRegistrations(req, res) {
   try {
     const user_id = req.user.user_id;
@@ -230,16 +185,6 @@ async function getMyRegistrations(req, res) {
   }
 }
 
-/**
- * POST /api/events/:id/attendance
- *
- * Mark attendance for a student at an event.
- * Calls sp_mark_attendance stored procedure.
- *
- * Body: { user_id, method? }
- *
- * Requires: organizer or admin role.
- */
 async function markAttendance(req, res) {
   try {
     const event_id = parseInt(req.params.id);
@@ -259,7 +204,6 @@ async function markAttendance(req, res) {
       });
     }
 
-    // ── Call stored procedure (must use pool.query, NOT pool.execute) ──
     await pool.query('CALL sp_mark_attendance(?, ?, ?, @result)', [user_id, event_id, method]);
     const [[{ '@result': result }]] = await pool.query('SELECT @result');
 
@@ -310,16 +254,6 @@ async function markAttendance(req, res) {
   }
 }
 
-/**
- * POST /api/events/:id/certificates
- *
- * Generate a certificate for a student who attended an event.
- * Inserts a row into the certificates table with a unique hash.
- *
- * Body: { user_id }
- *
- * Requires: organizer or admin role.
- */
 async function generateCertificate(req, res) {
   try {
     const event_id = parseInt(req.params.id);
@@ -332,7 +266,6 @@ async function generateCertificate(req, res) {
       });
     }
 
-    // Find the registration — must be 'attended' or 'completed'
     const [regRows] = await pool.query(
       `SELECT r.registration_id, r.status AS reg_status,
               e.event_name,
@@ -356,7 +289,6 @@ async function generateCertificate(req, res) {
 
     const reg = regRows[0];
 
-    // Check if certificate already exists
     const [existingCert] = await pool.query(
       'SELECT certificate_id, certificate_url FROM certificates WHERE registration_id = ?',
       [reg.registration_id]
@@ -373,23 +305,19 @@ async function generateCertificate(req, res) {
       });
     }
 
-    // Generate a unique certificate hash
     const certHash = crypto
       .createHash('sha256')
       .update(`${reg.registration_id}-${event_id}-${user_id}-${Date.now()}`)
       .digest('hex');
 
-    // Certificate URL (placeholder — could be a real PDF endpoint)
     const certUrl = `/certificates/${certHash}.pdf`;
 
-    // Insert into certificates table
     const [result] = await pool.query(
       `INSERT INTO certificates (registration_id, certificate_url, certificate_hash)
        VALUES (?, ?, ?)`,
       [reg.registration_id, certUrl, certHash]
     );
 
-    // Update registration status to 'completed'
     await pool.query(
       `UPDATE registrations SET status = 'completed', updated_at = CURRENT_TIMESTAMP
        WHERE registration_id = ? AND status = 'attended'`,

@@ -338,6 +338,8 @@ DB_PASSWORD=YOUR_MYSQL_PASSWORD
 DB_NAME=college_events
 JWT_SECRET=your_secret_key_here
 JWT_EXPIRES_IN=24h
+ADMIN_REGISTRATION_KEY=change_this_admin_signup_key
+ENABLE_DEBUG_ENDPOINT=false
 PORT=3000
 ```
 
@@ -377,10 +379,10 @@ Navigate to **http://localhost:5173**
 
 | Role | Email | Password |
 |---|---|---|
-| 🔴 Admin | `arjun.mehta@university.edu` | `Password123!` |
-| 🟡 Organizer | `priya.sharma@university.edu` | `Password123!` |
-| 🟢 Student | `sneha.reddy@university.edu` | `Password123!` |
-| 🟢 Student | `ananya.patel@university.edu` | `Password123!` |
+| 🔴 Admin | `arjun.mehta@iiit-bh.ac.in` | `Password123!` |
+| 🟡 Organizer | `priya.sharma@iiit-bh.ac.in` | `Password123!` |
+| 🟢 Student | `sneha.reddy@iiit-bh.ac.in` | `Password123!` |
+| 🟢 Student | `ananya.patel@iiit-bh.ac.in` | `Password123!` |
 
 ---
 

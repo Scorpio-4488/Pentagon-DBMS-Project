@@ -1,51 +1,59 @@
-/**
- * ============================================================
- * My Events — Student's Registered Events
- * ============================================================
- *
- * Displays all events the logged-in student has registered for,
- * with registration status, attendance info, and the ability
- * to cancel upcoming registrations.
- * ============================================================
- */
-
-import { useState, useEffect } from 'react';
-import api from '../utils/api';
-import { toast } from './Toast';
+import { useEffect, useState } from 'react';
 import {
   Calendar,
-  MapPin,
-  Clock,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  FileText,
+  CheckCircle2,
+  Clock3,
+  ExternalLink,
   Loader2,
+  MapPin,
+  OctagonAlert,
+  ShieldCheck,
   Trash2,
+  XCircle,
 } from 'lucide-react';
 
+import api from '../utils/api';
+import { toast } from './Toast';
+
 const STATUS_STYLES = {
-  registered: { bg: 'bg-brand-500/10',   text: 'text-brand-400',    icon: AlertCircle },
-  attended:   { bg: 'bg-amber-500/10',   text: 'text-amber-400',    icon: Clock },
-  completed:  { bg: 'bg-emerald-500/10', text: 'text-emerald-400',  icon: CheckCircle },
-  cancelled:  { bg: 'bg-red-500/10',     text: 'text-red-400',      icon: XCircle },
+  registered: {
+    label: 'Registered',
+    className: 'border-brand-200 bg-brand-50 text-brand-700',
+    icon: Calendar,
+  },
+  attended: {
+    label: 'Attended',
+    className: 'border-amber-200 bg-amber-50 text-amber-700',
+    icon: Clock3,
+  },
+  completed: {
+    label: 'Completed',
+    className: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    icon: CheckCircle2,
+  },
+  cancelled: {
+    label: 'Cancelled',
+    className: 'border-red-200 bg-red-50 text-red-700',
+    icon: XCircle,
+  },
 };
 
 export default function MyEvents() {
   const [registrations, setRegistrations] = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [cancelling, setCancelling] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [cancellingId, setCancellingId] = useState(null);
 
   useEffect(() => {
-    fetchMyRegistrations();
+    fetchRegistrations();
   }, []);
 
-  async function fetchMyRegistrations() {
+  async function fetchRegistrations() {
     setLoading(true);
+
     try {
-      const res = await api.get('/users/me/registrations');
-      setRegistrations(res.data.data.registrations || []);
-    } catch (err) {
+      const response = await api.get('/users/me/registrations');
+      setRegistrations(response.data.data.registrations || []);
+    } catch {
       toast.error('Failed to load your registrations.');
     } finally {
       setLoading(false);
@@ -53,120 +61,156 @@ export default function MyEvents() {
   }
 
   async function handleCancel(eventId) {
-    if (!window.confirm('Are you sure you want to cancel this registration?')) return;
+    if (!window.confirm('Are you sure you want to cancel this registration?')) {
+      return;
+    }
 
-    setCancelling(eventId);
+    setCancellingId(eventId);
+
     try {
       await api.delete(`/events/${eventId}/register`);
       toast.success('Registration cancelled. Seat has been released.');
-      // Refresh the list
-      fetchMyRegistrations();
-    } catch (err) {
-      const msg = err.response?.data?.error?.message || 'Cancellation failed.';
-      toast.error(msg);
+      fetchRegistrations();
+    } catch (error) {
+      toast.error(error.response?.data?.error?.message || 'Cancellation failed.');
     } finally {
-      setCancelling(null);
+      setCancellingId(null);
     }
   }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-32">
-        <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+          <Loader2 className="h-5 w-5 animate-spin text-brand-600" />
+          <span className="text-sm font-medium text-slate-600">Loading your events</span>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 animate-fade-in">
-
-      <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1">My Events</h1>
-        <p className="text-gray-400">Your registrations, attendance, and certificates</p>
-      </div>
+    <div className="page-shell space-y-8">
+      <header className="space-y-3">
+        <p className="section-eyebrow">My registrations</p>
+        <h1 className="section-title">Track your event activity</h1>
+        <p className="section-copy max-w-2xl">
+          Review upcoming registrations, completed events, attendance status, and certificate availability in one place.
+        </p>
+      </header>
 
       {registrations.length === 0 ? (
-        <div className="glass-card p-16 text-center">
-          <Calendar className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-          <p className="text-lg font-medium text-gray-400">No registrations yet</p>
-          <p className="text-sm text-gray-600 mt-1">Explore events and register to see them here</p>
-        </div>
+        <section className="glass-card px-6 py-16 text-center">
+          <ShieldCheck className="mx-auto h-10 w-10 text-slate-300" />
+          <h2 className="mt-5 text-xl font-semibold text-slate-900">No registrations yet</h2>
+          <p className="mt-3 text-sm leading-6 text-slate-500">
+            Register for an upcoming event to start building your activity history.
+          </p>
+        </section>
       ) : (
-        <div className="space-y-4">
-          {registrations.map((reg, i) => {
-            const status = STATUS_STYLES[reg.registration_status] || STATUS_STYLES.registered;
+        <section className="space-y-4">
+          {registrations.map((registration) => {
+            const status = STATUS_STYLES[registration.registration_status] || STATUS_STYLES.registered;
             const StatusIcon = status.icon;
-            const eventDate = new Date(reg.event_date);
-            const canCancel = reg.registration_status === 'registered' && reg.event_status === 'upcoming';
+            const eventDate = new Date(registration.event_date);
+            const canCancel = registration.registration_status === 'registered' && registration.event_status === 'upcoming';
 
             return (
-              <div
-                key={reg.registration_id}
-                className="glass-card p-5 flex flex-col sm:flex-row sm:items-center gap-4
-                           hover:border-gray-700/70 transition-all animate-slide-up"
-                style={{ animationDelay: `${i * 40}ms` }}
-              >
-                {/* Date block */}
-                <div className="w-16 h-16 rounded-xl bg-gray-800/50 flex flex-col items-center justify-center shrink-0">
-                  <span className="text-xs font-semibold text-gray-500 uppercase">
-                    {eventDate.toLocaleDateString('en-IN', { month: 'short' })}
-                  </span>
-                  <span className="text-xl font-bold text-white leading-none">
-                    {eventDate.getDate()}
-                  </span>
-                </div>
+              <article key={registration.registration_id} className="glass-card p-5 sm:p-6">
+                <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="flex min-w-0 flex-1 gap-4">
+                    <div className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-xl border border-slate-200 bg-slate-50">
+                      <span className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
+                        {eventDate.toLocaleDateString('en-IN', { month: 'short' })}
+                      </span>
+                      <span className="mt-1 text-2xl font-semibold text-slate-900">
+                        {eventDate.getDate()}
+                      </span>
+                    </div>
 
-                {/* Event info */}
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-base font-semibold text-white truncate">{reg.event_name}</h3>
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5 text-xs text-gray-500">
-                    <span className="flex items-center gap-1">
-                      <MapPin className="w-3 h-3" /> {reg.venue_name}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {eventDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                    <span className="text-gray-600">{reg.category_name}</span>
+                    <div className="min-w-0 flex-1 space-y-3">
+                      <div className="space-y-1">
+                        <h2 className="text-xl font-semibold text-slate-900">{registration.event_name}</h2>
+                        <p className="text-sm text-slate-500">Organized by {registration.organizer_name}</p>
+                      </div>
+
+                      <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-600">
+                        <span className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-slate-400" />
+                          {eventDate.toLocaleDateString('en-IN', {
+                            weekday: 'short',
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                          })}
+                        </span>
+                        <span className="flex items-center gap-2">
+                          <Clock3 className="h-4 w-4 text-slate-400" />
+                          {eventDate.toLocaleTimeString('en-IN', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
+                        <span className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-slate-400" />
+                          {registration.venue_name}
+                          {registration.building ? `, ${registration.building}` : ''}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-3">
+                        <span className={`badge ${status.className}`}>
+                          <StatusIcon className="h-3.5 w-3.5" />
+                          {status.label}
+                        </span>
+                        <span className="badge border-slate-200 bg-slate-50 text-slate-600">
+                          {registration.category_name}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3">
+                    {registration.certificate_url && (
+                      <a
+                        href={registration.certificate_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn-secondary"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        Certificate
+                      </a>
+                    )}
+
+                    {canCancel && (
+                      <button
+                        type="button"
+                        onClick={() => handleCancel(registration.event_id)}
+                        disabled={cancellingId === registration.event_id}
+                        className="btn-danger"
+                      >
+                        {cancellingId === registration.event_id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                        Cancel registration
+                      </button>
+                    )}
+
+                    {!canCancel && registration.registration_status === 'registered' && (
+                      <span className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500">
+                        <OctagonAlert className="h-4 w-4" />
+                        Registration locked
+                      </span>
+                    )}
                   </div>
                 </div>
-
-                {/* Status + Actions */}
-                <div className="flex items-center gap-3 shrink-0">
-                  {/* Certificate link */}
-                  {reg.certificate_url && (
-                    <button className="btn-secondary text-xs flex items-center gap-1.5 py-1.5 px-3">
-                      <FileText className="w-3.5 h-3.5" />
-                      Certificate
-                    </button>
-                  )}
-
-                  {/* Cancel button */}
-                  {canCancel && (
-                    <button
-                      onClick={() => handleCancel(reg.event_id)}
-                      disabled={cancelling === reg.event_id}
-                      className="btn-danger text-xs flex items-center gap-1.5 py-1.5 px-3"
-                    >
-                      {cancelling === reg.event_id ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <Trash2 className="w-3.5 h-3.5" />
-                      )}
-                      Cancel
-                    </button>
-                  )}
-
-                  {/* Status badge */}
-                  <span className={`badge ${status.bg} ${status.text} border border-current/20`}>
-                    <StatusIcon className="w-3 h-3 mr-1" />
-                    {reg.registration_status}
-                  </span>
-                </div>
-              </div>
+              </article>
             );
           })}
-        </div>
+        </section>
       )}
     </div>
   );

@@ -1,29 +1,17 @@
--- ============================================================
--- College Event Management System — DML (Seed / Dummy Data)
--- Run AFTER 01_schema.sql
--- ============================================================
-
 USE college_events;
 
--- ──────────────────────────────────────────────
--- 1. Users (passwords are bcrypt hashes of 'Password123!')
--- ──────────────────────────────────────────────
 INSERT INTO users (first_name, last_name, email, password_hash, role, department, phone) VALUES
-('Arjun',    'Mehta',     'arjun.mehta@university.edu',     '$2b$10$xK4Ej5QaO0Gz1nMVx2F5aeZQx7b5Yj2KlM9Rv3NpWfHsD4TqE6GO', 'admin',     'Computer Science', '9876543210'),
-('Priya',    'Sharma',    'priya.sharma@university.edu',    '$2b$10$xK4Ej5QaO0Gz1nMVx2F5aeZQx7b5Yj2KlM9Rv3NpWfHsD4TqE6GO', 'organizer', 'Computer Science', '9876543211'),
-('Rohan',    'Gupta',     'rohan.gupta@university.edu',     '$2b$10$xK4Ej5QaO0Gz1nMVx2F5aeZQx7b5Yj2KlM9Rv3NpWfHsD4TqE6GO', 'organizer', 'Electronics',      '9876543212'),
-('Sneha',    'Reddy',     'sneha.reddy@university.edu',     '$2b$10$xK4Ej5QaO0Gz1nMVx2F5aeZQx7b5Yj2KlM9Rv3NpWfHsD4TqE6GO', 'student',   'Computer Science', '9876543213'),
-('Vikram',   'Singh',     'vikram.singh@university.edu',    '$2b$10$xK4Ej5QaO0Gz1nMVx2F5aeZQx7b5Yj2KlM9Rv3NpWfHsD4TqE6GO', 'student',   'Mechanical',       '9876543214'),
-('Ananya',   'Patel',     'ananya.patel@university.edu',    '$2b$10$xK4Ej5QaO0Gz1nMVx2F5aeZQx7b5Yj2KlM9Rv3NpWfHsD4TqE6GO', 'student',   'Electronics',      '9876543215'),
-('Karthik',  'Nair',      'karthik.nair@university.edu',    '$2b$10$xK4Ej5QaO0Gz1nMVx2F5aeZQx7b5Yj2KlM9Rv3NpWfHsD4TqE6GO', 'student',   'Civil',            '9876543216'),
-('Deepika',  'Joshi',     'deepika.joshi@university.edu',   '$2b$10$xK4Ej5QaO0Gz1nMVx2F5aeZQx7b5Yj2KlM9Rv3NpWfHsD4TqE6GO', 'student',   'Computer Science', '9876543217'),
-('Rahul',    'Verma',     'rahul.verma@university.edu',     '$2b$10$xK4Ej5QaO0Gz1nMVx2F5aeZQx7b5Yj2KlM9Rv3NpWfHsD4TqE6GO', 'student',   'Information Tech', '9876543218'),
-('Meera',    'Kulkarni',  'meera.kulkarni@university.edu',  '$2b$10$xK4Ej5QaO0Gz1nMVx2F5aeZQx7b5Yj2KlM9Rv3NpWfHsD4TqE6GO', 'organizer', 'Sports Science',   '9876543219');
+('Arjun',    'Mehta',     'arjun.mehta@iiit-bh.ac.in',     '$2b$10$xK4Ej5QaO0Gz1nMVx2F5aeZQx7b5Yj2KlM9Rv3NpWfHsD4TqE6GO', 'admin',     'Computer Science', '9876543210'),
+('Priya',    'Sharma',    'priya.sharma@iiit-bh.ac.in',    '$2b$10$xK4Ej5QaO0Gz1nMVx2F5aeZQx7b5Yj2KlM9Rv3NpWfHsD4TqE6GO', 'organizer', 'Computer Science', '9876543211'),
+('Rohan',    'Gupta',     'rohan.gupta@iiit-bh.ac.in',     '$2b$10$xK4Ej5QaO0Gz1nMVx2F5aeZQx7b5Yj2KlM9Rv3NpWfHsD4TqE6GO', 'organizer', 'Electronics',      '9876543212'),
+('Sneha',    'Reddy',     'sneha.reddy@iiit-bh.ac.in',     '$2b$10$xK4Ej5QaO0Gz1nMVx2F5aeZQx7b5Yj2KlM9Rv3NpWfHsD4TqE6GO', 'student',   'Computer Science', '9876543213'),
+('Vikram',   'Singh',     'vikram.singh@iiit-bh.ac.in',    '$2b$10$xK4Ej5QaO0Gz1nMVx2F5aeZQx7b5Yj2KlM9Rv3NpWfHsD4TqE6GO', 'student',   'Mechanical',       '9876543214'),
+('Ananya',   'Patel',     'ananya.patel@iiit-bh.ac.in',    '$2b$10$xK4Ej5QaO0Gz1nMVx2F5aeZQx7b5Yj2KlM9Rv3NpWfHsD4TqE6GO', 'student',   'Electronics',      '9876543215'),
+('Karthik',  'Nair',      'karthik.nair@iiit-bh.ac.in',    '$2b$10$xK4Ej5QaO0Gz1nMVx2F5aeZQx7b5Yj2KlM9Rv3NpWfHsD4TqE6GO', 'student',   'Civil',            '9876543216'),
+('Deepika',  'Joshi',     'deepika.joshi@iiit-bh.ac.in',   '$2b$10$xK4Ej5QaO0Gz1nMVx2F5aeZQx7b5Yj2KlM9Rv3NpWfHsD4TqE6GO', 'student',   'Computer Science', '9876543217'),
+('Rahul',    'Verma',     'rahul.verma@iiit-bh.ac.in',     '$2b$10$xK4Ej5QaO0Gz1nMVx2F5aeZQx7b5Yj2KlM9Rv3NpWfHsD4TqE6GO', 'student',   'Information Tech', '9876543218'),
+('Meera',    'Kulkarni',  'meera.kulkarni@iiit-bh.ac.in',  '$2b$10$xK4Ej5QaO0Gz1nMVx2F5aeZQx7b5Yj2KlM9Rv3NpWfHsD4TqE6GO', 'organizer', 'Sports Science',   '9876543219');
 
-
--- ──────────────────────────────────────────────
--- 2. Event Categories
--- ──────────────────────────────────────────────
 INSERT INTO event_categories (category_name, description) VALUES
 ('Technical',  'Hackathons, coding contests, tech talks, and workshops'),
 ('Cultural',   'Music, dance, drama, art exhibitions, and literary events'),
@@ -31,10 +19,6 @@ INSERT INTO event_categories (category_name, description) VALUES
 ('Workshop',   'Hands-on skill-building sessions and boot camps'),
 ('Seminar',    'Guest lectures, panel discussions, and academic talks');
 
-
--- ──────────────────────────────────────────────
--- 3. Venues
--- ──────────────────────────────────────────────
 INSERT INTO venues (venue_name, building, capacity, facilities) VALUES
 ('Main Auditorium',     'Central Block',    500,  'Projector, Sound System, AC, Stage Lighting'),
 ('Seminar Hall A',      'Academic Block 1', 150,  'Projector, Whiteboard, AC, Video Conferencing'),
@@ -44,10 +28,6 @@ INSERT INTO venues (venue_name, building, capacity, facilities) VALUES
 ('Sports Complex',      'Sports Block',     2000, 'Indoor Courts, Scoreboards, PA System'),
 ('Conference Room 101', 'Admin Block',      40,   'Smart Board, Video Conferencing, AC');
 
-
--- ──────────────────────────────────────────────
--- 4. Events
--- ──────────────────────────────────────────────
 INSERT INTO events (event_name, description, category_id, venue_id, organizer_id, event_date, end_date, max_capacity, available_seats, status, registration_fee) VALUES
 ('CodeStorm 2026',
  'A 24-hour national-level hackathon. Build innovative solutions for real-world problems. Teams of 2-4 members.',
@@ -77,40 +57,36 @@ INSERT INTO events (event_name, description, category_id, venue_id, organizer_id
  'Track and field events, tug-of-war, relay races. Open to all students and faculty.',
  3, 6, 10, '2026-03-15 07:00:00', '2026-03-15 18:00:00', 1500, 0, 'completed', 0.00);
 
-
--- ──────────────────────────────────────────────
--- 5. Registrations
--- ──────────────────────────────────────────────
 INSERT INTO registrations (user_id, event_id, status) VALUES
--- CodeStorm 2026
+
 (4, 1, 'registered'),
 (5, 1, 'registered'),
 (6, 1, 'registered'),
 (8, 1, 'registered'),
--- Rhythm & Blues Night
+
 (4, 2, 'registered'),
 (5, 2, 'registered'),
 (7, 2, 'registered'),
 (9, 2, 'registered'),
--- AI/ML Workshop
+
 (4, 4, 'registered'),
 (6, 4, 'registered'),
 (8, 4, 'registered'),
 (9, 4, 'registered'),
--- Guest Lecture
+
 (4, 5, 'registered'),
 (5, 5, 'registered'),
 (6, 5, 'registered'),
 (7, 5, 'registered'),
 (8, 5, 'registered'),
--- Web Dev Bootcamp (ongoing — some attended)
+
 (4, 6, 'attended'),
 (5, 6, 'attended'),
 (6, 6, 'attended'),
 (7, 6, 'registered'),
 (8, 6, 'attended'),
 (9, 6, 'registered'),
--- Annual Sports Day (completed)
+
 (4, 7, 'completed'),
 (5, 7, 'completed'),
 (6, 7, 'completed'),
@@ -118,17 +94,13 @@ INSERT INTO registrations (user_id, event_id, status) VALUES
 (8, 7, 'completed'),
 (9, 7, 'completed');
 
-
--- ──────────────────────────────────────────────
--- 6. Attendance
--- ──────────────────────────────────────────────
 INSERT INTO attendance (registration_id, check_in_time, check_out_time, method) VALUES
--- Web Dev Bootcamp attendees (registration_ids 18-20, 22)
+
 (18, '2026-04-18 08:55:00', NULL, 'qr_scan'),
 (19, '2026-04-18 09:02:00', NULL, 'qr_scan'),
 (20, '2026-04-18 09:10:00', NULL, 'manual'),
 (22, '2026-04-18 08:50:00', NULL, 'qr_scan'),
--- Annual Sports Day (registration_ids 24-29)
+
 (24, '2026-03-15 06:50:00', '2026-03-15 17:30:00', 'manual'),
 (25, '2026-03-15 07:00:00', '2026-03-15 18:00:00', 'manual'),
 (26, '2026-03-15 07:05:00', '2026-03-15 16:45:00', 'qr_scan'),
@@ -136,10 +108,6 @@ INSERT INTO attendance (registration_id, check_in_time, check_out_time, method) 
 (28, '2026-03-15 07:10:00', '2026-03-15 17:00:00', 'qr_scan'),
 (29, '2026-03-15 07:15:00', '2026-03-15 16:30:00', 'qr_scan');
 
-
--- ──────────────────────────────────────────────
--- 7. Feedback
--- ──────────────────────────────────────────────
 INSERT INTO feedback (user_id, event_id, rating, comments) VALUES
 (4, 7, 5, 'Excellent organization! The relay race was the highlight. Would love more inter-college events.'),
 (5, 7, 4, 'Great event, but the schedule was a bit tight. More water stations needed.'),
@@ -148,10 +116,6 @@ INSERT INTO feedback (user_id, event_id, rating, comments) VALUES
 (8, 7, 4, 'Well organized overall. The track events were thrilling.'),
 (9, 7, 5, 'Amazing atmosphere. The closing ceremony was fantastic.');
 
-
--- ──────────────────────────────────────────────
--- 8. Certificates
--- ──────────────────────────────────────────────
 INSERT INTO certificates (registration_id, certificate_url, certificate_hash) VALUES
 (24, '/certificates/sports_day_2026_sneha_reddy.pdf',   SHA2('CERT-7-4-2026', 256)),
 (25, '/certificates/sports_day_2026_vikram_singh.pdf',   SHA2('CERT-7-5-2026', 256)),
@@ -160,10 +124,6 @@ INSERT INTO certificates (registration_id, certificate_url, certificate_hash) VA
 (28, '/certificates/sports_day_2026_deepika_joshi.pdf',  SHA2('CERT-7-8-2026', 256)),
 (29, '/certificates/sports_day_2026_rahul_verma.pdf',    SHA2('CERT-7-9-2026', 256));
 
-
--- ──────────────────────────────────────────────
--- 9. Notifications
--- ──────────────────────────────────────────────
 INSERT INTO notifications (user_id, event_id, title, message, type, is_read) VALUES
 (4, 1, 'Registration Confirmed', 'You are registered for CodeStorm 2026. See you on May 15!', 'general', TRUE),
 (5, 1, 'Registration Confirmed', 'You are registered for CodeStorm 2026. See you on May 15!', 'general', TRUE),

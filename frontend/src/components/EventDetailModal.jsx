@@ -1,627 +1,574 @@
-/**
- * ============================================================
- * Event Detail Modal — Student Event Actions
- * ============================================================
- *
- * Rubric Features Covered:
- *  ✅ Student Registration (register button, disables if full)
- *  ✅ Participation Tracking (status display)
- *  ✅ Certificates & Results (download button)
- *  ✅ Feedback (rating + comment form)
- *  ✅ Seat/Capacity Management (visual progress bar)
- *
- * Opens as a fullscreen modal overlay.
- * Fetches LIVE event data on open so seats are always current.
- * ============================================================
- */
-
-import { useState, useEffect } from 'react';
-import api from '../utils/api';
-import { toast } from './Toast';
+import { useEffect, useState } from 'react';
 import {
-  X,
   Calendar,
-  MapPin,
-  Clock,
-  Users,
-  Tag,
-  IndianRupee,
-  Ticket,
-  Loader2,
-  Star,
-  Send,
+  CheckCircle2,
+  Clock3,
   Download,
-  CheckCircle,
-  AlertCircle,
-  XCircle,
+  IndianRupee,
+  Loader2,
+  MapPin,
+  Send,
+  Star,
+  Ticket,
   UserCheck,
-  Trophy,
+  X,
+  XCircle,
 } from 'lucide-react';
 
-/* ── Status styling ── */
-const REG_STATUS = {
-  registered: { label: 'Registered',  icon: AlertCircle, color: 'text-brand-400',   bg: 'bg-brand-500/10',   border: 'border-brand-500/20' },
-  attended:   { label: 'Attended',    icon: UserCheck,   color: 'text-amber-400',   bg: 'bg-amber-500/10',   border: 'border-amber-500/20' },
-  completed:  { label: 'Completed',   icon: CheckCircle, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
-  cancelled:  { label: 'Cancelled',   icon: XCircle,     color: 'text-red-400',     bg: 'bg-red-500/10',     border: 'border-red-500/20' },
+import api from '../utils/api';
+import { toast } from './Toast';
+
+const REGISTRATION_STYLES = {
+  registered: {
+    label: 'Registered',
+    className: 'border-brand-200 bg-brand-50 text-brand-700',
+    icon: Calendar,
+  },
+  attended: {
+    label: 'Attended',
+    className: 'border-amber-200 bg-amber-50 text-amber-700',
+    icon: UserCheck,
+  },
+  completed: {
+    label: 'Completed',
+    className: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    icon: CheckCircle2,
+  },
+  cancelled: {
+    label: 'Cancelled',
+    className: 'border-red-200 bg-red-50 text-red-700',
+    icon: XCircle,
+  },
 };
 
-/* ── Category colors ── */
-const CAT_COLORS = {
-  Technical: 'from-blue-600 to-cyan-500',
-  Cultural:  'from-pink-600 to-rose-400',
-  Sports:    'from-emerald-600 to-teal-400',
-  Workshop:  'from-amber-600 to-yellow-400',
-  Seminar:   'from-purple-600 to-violet-400',
+const EVENT_STATUS_STYLES = {
+  upcoming: 'border-brand-200 bg-brand-50 text-brand-700',
+  ongoing: 'border-amber-200 bg-amber-50 text-amber-700',
+  completed: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  cancelled: 'border-red-200 bg-red-50 text-red-700',
 };
+
+function formatEventDate(dateString) {
+  const date = new Date(dateString);
+
+  return {
+    full: date.toLocaleDateString('en-IN', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    }),
+    time: date.toLocaleTimeString('en-IN', {
+      hour: '2-digit',
+      minute: '2-digit',
+    }),
+  };
+}
 
 export default function EventDetailModal({ event: initialEvent, onClose, onRegistrationChange }) {
-  if (!initialEvent) return null;
-
-  // ── State ──
-  // Use local event state so we can refresh seat counts after registration
-  const [event, setEvent]                 = useState(initialEvent);
-  const [registering, setRegistering]     = useState(false);
-  const [cancelling, setCancelling]       = useState(false);
+  const [event, setEvent] = useState(initialEvent);
+  const [registering, setRegistering] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [myRegistration, setMyRegistration] = useState(null);
-  const [regLoading, setRegLoading]       = useState(true);
-  const [feedback, setFeedback]           = useState({ rating: 0, comments: '' });
-  const [feedbackList, setFeedbackList]   = useState([]);
+  const [regLoading, setRegLoading] = useState(true);
+  const [feedback, setFeedback] = useState({ rating: 0, comments: '' });
+  const [feedbackList, setFeedbackList] = useState([]);
   const [feedbackSummary, setFeedbackSummary] = useState(null);
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
   const [hasSubmittedFeedback, setHasSubmittedFeedback] = useState(false);
-  const [activeTab, setActiveTab]         = useState('details');
+  const [activeTab, setActiveTab] = useState('details');
 
-  const eventDate  = new Date(event.event_date);
-  const endDate    = event.end_date ? new Date(event.end_date) : null;
-  const registered = event.max_capacity - event.available_seats;
-  const fillPct    = event.max_capacity > 0 ? (registered / event.max_capacity * 100) : 0;
-  const isFull     = event.available_seats <= 0;
-  const gradient   = CAT_COLORS[event.category_name] || 'from-gray-600 to-gray-400';
-
-  // ── Fetch fresh event data + registration status on open ──
   useEffect(() => {
-    fetchFreshEventData();
-    checkRegistration();
-    fetchFeedback();
+    loadEvent();
+    loadRegistration();
+    loadFeedback();
   }, [initialEvent.event_id]);
 
-  // ── Prevent body scroll when modal is open ──
   useEffect(() => {
     document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = ''; };
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, []);
 
-  /** Fetch the latest event data (seats, status) directly from the API */
-  async function fetchFreshEventData() {
+  async function loadEvent() {
     try {
-      const res = await api.get(`/events/${initialEvent.event_id}`);
-      if (res.data.success && res.data.data) {
-        setEvent(res.data.data);
+      const response = await api.get(`/events/${initialEvent.event_id}`);
+      if (response.data.success && response.data.data) {
+        setEvent(response.data.data);
       }
-    } catch {
-      // Fall back to the initial prop data
-    }
+    } catch {}
   }
 
-  async function checkRegistration() {
+  async function loadRegistration() {
     setRegLoading(true);
+
     try {
-      const res = await api.get('/users/me/registrations');
-      const regs = res.data.data.registrations || [];
-      const mine = regs.find(
-        (r) => r.event_id === initialEvent.event_id && r.registration_status !== 'cancelled'
+      const response = await api.get('/users/me/registrations');
+      const registrations = response.data.data.registrations || [];
+      const current = registrations.find(
+        (registration) => (
+          registration.event_id === initialEvent.event_id
+            && registration.registration_status !== 'cancelled'
+        )
       );
-      setMyRegistration(mine || null);
-      // Check if feedback was already submitted for this event
-      const feedbackCheck = regs.find(
-        (r) => r.event_id === initialEvent.event_id
-      );
-      setHasSubmittedFeedback(false); // Will be set properly by fetchFeedback
-    } catch {
-      /* ignore */
-    } finally {
+
+      setMyRegistration(current || null);
+      setHasSubmittedFeedback(false);
+    } catch {} finally {
       setRegLoading(false);
     }
   }
 
-  async function fetchFeedback() {
+  async function loadFeedback() {
     try {
-      const res = await api.get(`/events/${initialEvent.event_id}/feedback`);
-      setFeedbackList(res.data.data.feedback || []);
-      setFeedbackSummary(res.data.data.summary || null);
-    } catch { /* ignore */ }
+      const response = await api.get(`/events/${initialEvent.event_id}/feedback`);
+      setFeedbackList(response.data.data.feedback || []);
+      setFeedbackSummary(response.data.data.summary || null);
+    } catch {}
   }
 
   async function handleRegister() {
     setRegistering(true);
-    try {
-      const res = await api.post(`/events/${initialEvent.event_id}/register`);
-      toast.success('🎉 Successfully registered! Check "My Events" for details.');
 
-      // Update local seat count from the API response
-      if (res.data.data?.available_seats_remaining !== undefined) {
-        setEvent(prev => ({
-          ...prev,
-          available_seats: res.data.data.available_seats_remaining,
+    try {
+      const response = await api.post(`/events/${initialEvent.event_id}/register`);
+      toast.success('Successfully registered for the event.');
+
+      if (response.data.data?.available_seats_remaining !== undefined) {
+        setEvent((current) => ({
+          ...current,
+          available_seats: response.data.data.available_seats_remaining,
         }));
       } else {
-        // Fallback: re-fetch event data
-        await fetchFreshEventData();
+        await loadEvent();
       }
 
-      // Re-check registration status so the UI updates to "Registered"
-      await checkRegistration();
-
-      // Tell the parent dashboard to refresh its event list
+      await loadRegistration();
       onRegistrationChange?.();
-    } catch (err) {
-      const code = err.response?.data?.error?.code;
-      const msg  = err.response?.data?.error?.message;
-      if (code === 'ALREADY_REGISTERED') toast.error('You are already registered for this event.');
-      else if (code === 'NO_SEATS_AVAILABLE') toast.error('Sorry — this event is at full capacity.');
-      else if (code === 'EVENT_NOT_OPEN') toast.error('This event is no longer accepting registrations.');
-      else toast.error(msg || 'Registration failed.');
+    } catch (error) {
+      const code = error.response?.data?.error?.code;
+      const message = error.response?.data?.error?.message;
+
+      if (code === 'ALREADY_REGISTERED') {
+        toast.error('You are already registered for this event.');
+      } else if (code === 'NO_SEATS_AVAILABLE') {
+        toast.error('This event is already at full capacity.');
+      } else if (code === 'EVENT_NOT_OPEN') {
+        toast.error('This event is no longer accepting registrations.');
+      } else {
+        toast.error(message || 'Registration failed.');
+      }
     } finally {
       setRegistering(false);
     }
   }
 
   async function handleCancelRegistration() {
-    if (!window.confirm('Cancel your registration? The seat will be released.')) return;
+    if (!window.confirm('Cancel your registration? The released seat will become available again.')) {
+      return;
+    }
+
     setCancelling(true);
+
     try {
       await api.delete(`/events/${initialEvent.event_id}/register`);
-      toast.success('Registration cancelled. Seat has been released.');
+      toast.success('Registration cancelled.');
       setMyRegistration(null);
-
-      // Refresh seat count
-      await fetchFreshEventData();
-
-      // Tell parent to refresh
+      await loadEvent();
       onRegistrationChange?.();
-    } catch (err) {
-      toast.error(err.response?.data?.error?.message || 'Cancellation failed.');
+    } catch (error) {
+      toast.error(error.response?.data?.error?.message || 'Cancellation failed.');
     } finally {
       setCancelling(false);
     }
   }
 
-  async function handleSubmitFeedback(e) {
-    e.preventDefault();
-    if (feedback.rating === 0) { toast.error('Please select a rating.'); return; }
+  async function handleSubmitFeedback(eventObject) {
+    eventObject.preventDefault();
+
+    if (feedback.rating === 0) {
+      toast.error('Please select a rating.');
+      return;
+    }
 
     setSubmittingFeedback(true);
+
     try {
       await api.post(`/events/${initialEvent.event_id}/feedback`, feedback);
-      toast.success('Thank you for your feedback!');
+      toast.success('Thank you for your feedback.');
       setHasSubmittedFeedback(true);
       setFeedback({ rating: 0, comments: '' });
-      fetchFeedback();
-    } catch (err) {
-      const code = err.response?.data?.error?.code;
+      await loadFeedback();
+    } catch (error) {
+      const code = error.response?.data?.error?.code;
+
       if (code === 'FEEDBACK_EXISTS') {
-        toast.error('You have already submitted feedback.');
+        toast.error('You have already submitted feedback for this event.');
         setHasSubmittedFeedback(true);
+      } else {
+        toast.error(error.response?.data?.error?.message || 'Failed to submit feedback.');
       }
-      else toast.error(err.response?.data?.error?.message || 'Failed to submit feedback.');
     } finally {
       setSubmittingFeedback(false);
     }
   }
 
-  const regStatus = myRegistration ? REG_STATUS[myRegistration.registration_status] : null;
-  const RegIcon   = regStatus?.icon;
+  const eventDate = formatEventDate(event.event_date);
+  const eventEndTime = event.end_date
+    ? new Date(event.end_date).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+    : null;
+  const seatsFilled = event.max_capacity - event.available_seats;
+  const fillPercent = event.max_capacity ? Math.min(100, (seatsFilled / event.max_capacity) * 100) : 0;
+  const fullyBooked = event.available_seats <= 0;
+  const registrationStyle = myRegistration
+    ? REGISTRATION_STYLES[myRegistration.registration_status] || REGISTRATION_STYLES.registered
+    : null;
+  const RegistrationIcon = registrationStyle?.icon;
+  const canRegister = !regLoading && !myRegistration && event.status === 'upcoming';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-         onClick={onClose}>
-
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-
-      {/* Modal */}
+    <div
+      className="fixed inset-0 z-50 bg-slate-900/30 px-4 py-8 backdrop-blur-sm"
+      onClick={onClose}
+    >
       <div
-        className="relative w-full max-w-2xl max-h-[90vh] glass-card border border-gray-700/50
-                   shadow-2xl shadow-black/50 animate-slide-up overflow-hidden flex flex-col"
-        onClick={(e) => e.stopPropagation()}
+        className="mx-auto flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.16)]"
+        onClick={(eventObject) => eventObject.stopPropagation()}
       >
-        {/* ── Header Banner ── */}
-        <div className={`relative h-32 bg-gradient-to-r ${gradient} overflow-hidden shrink-0`}>
-          {/* Pattern overlay */}
-          <div className="absolute inset-0 opacity-10"
-               style={{
-                 backgroundImage: 'radial-gradient(circle at 25% 25%, white 1px, transparent 1px)',
-                 backgroundSize: '24px 24px',
-               }} />
+        <div className="border-b border-slate-200 px-6 py-5 sm:px-8">
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-3">
+              <div className="flex flex-wrap gap-2">
+                <span className="badge border-slate-200 bg-slate-50 text-slate-600">
+                  {event.category_name}
+                </span>
+                <span className={`badge ${EVENT_STATUS_STYLES[event.status] || EVENT_STATUS_STYLES.upcoming}`}>
+                  {event.status}
+                </span>
+              </div>
+              <div>
+                <h2 className="text-2xl font-semibold text-slate-900">{event.event_name}</h2>
+                <p className="mt-2 text-sm text-slate-500">
+                  Organized by {event.organizer_name || 'Campus team'}
+                </p>
+              </div>
+            </div>
 
-          {/* Close button */}
-          <button
-            onClick={onClose}
-            className="absolute top-3 right-3 w-8 h-8 rounded-lg bg-black/30 backdrop-blur-sm
-                       flex items-center justify-center text-white/80 hover:text-white
-                       hover:bg-black/50 transition-all"
-          >
-            <X className="w-4 h-4" />
-          </button>
-
-          {/* Category badge */}
-          <div className="absolute bottom-3 left-5">
-            <span className="badge bg-black/30 text-white backdrop-blur-sm border border-white/10">
-              <Tag className="w-3 h-3 mr-1" />
-              {event.category_name}
-            </span>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg border border-slate-200 p-2 text-slate-500 transition hover:bg-slate-50 hover:text-slate-700"
+            >
+              <X className="h-5 w-5" />
+            </button>
           </div>
 
-          {/* Status */}
-          <div className="absolute bottom-3 right-5">
-            <span className={`badge capitalize
-              ${event.status === 'upcoming'  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/20' :
-                event.status === 'ongoing'   ? 'bg-amber-500/20 text-amber-300 border border-amber-500/20' :
-                event.status === 'completed' ? 'bg-gray-500/20 text-gray-300 border border-gray-500/20' :
-                'bg-red-500/20 text-red-300 border border-red-500/20'}`}>
-              {event.status}
-            </span>
+          <div className="mt-5 flex gap-2 rounded-xl bg-slate-100 p-1">
+            {['details', 'feedback'].map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActiveTab(tab)}
+                className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium capitalize transition ${
+                  activeTab === tab
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* ── Scrollable Content ── */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="p-6">
-
-            {/* Title */}
-            <h2 className="text-xl font-bold text-white mb-1">{event.event_name}</h2>
-            <p className="text-sm text-gray-500 mb-5">
-              Organized by {event.organizer_name || 'Campus Team'}
-            </p>
-
-            {/* ── Tab Navigation ── */}
-            <div className="flex gap-1 p-1 bg-gray-800/50 rounded-xl mb-5">
-              {['details', 'feedback'].map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`flex-1 py-2 rounded-lg text-sm font-medium capitalize transition-all
-                    ${activeTab === tab
-                      ? 'bg-gray-700/50 text-white shadow-sm'
-                      : 'text-gray-500 hover:text-gray-300'
-                    }`}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
-
-            {/* ══════ DETAILS TAB ══════ */}
-            {activeTab === 'details' && (
-              <div className="space-y-5 animate-fade-in">
-
-                {/* Info Grid */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 rounded-xl bg-gray-800/30 border border-gray-800/50">
-                    <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
-                      <Calendar className="w-3.5 h-3.5" /> Date
-                    </div>
-                    <p className="text-sm text-white font-medium">
-                      {eventDate.toLocaleDateString('en-IN', {
-                        weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
-                      })}
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-xl bg-gray-800/30 border border-gray-800/50">
-                    <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
-                      <Clock className="w-3.5 h-3.5" /> Time
-                    </div>
-                    <p className="text-sm text-white font-medium">
-                      {eventDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                      {endDate && (
-                        <span className="text-gray-500">
-                          {' — '}{endDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-xl bg-gray-800/30 border border-gray-800/50">
-                    <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
-                      <MapPin className="w-3.5 h-3.5" /> Venue
-                    </div>
-                    <p className="text-sm text-white font-medium">
-                      {event.venue_name}
-                    </p>
-                    {event.building && (
-                      <p className="text-xs text-gray-500">{event.building}</p>
-                    )}
-                  </div>
-                  <div className="p-3 rounded-xl bg-gray-800/30 border border-gray-800/50">
-                    <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
-                      <IndianRupee className="w-3.5 h-3.5" /> Fee
-                    </div>
-                    <p className="text-sm text-white font-medium">
-                      {parseFloat(event.registration_fee) > 0
-                        ? `₹${parseFloat(event.registration_fee).toFixed(0)}`
-                        : 'Free'}
-                    </p>
-                  </div>
+        <div className="flex-1 overflow-y-auto px-6 py-6 sm:px-8">
+          {activeTab === 'details' && (
+            <div className="space-y-6">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="flex items-center gap-2 text-sm font-medium text-slate-500">
+                    <Calendar className="h-4 w-4" />
+                    Date
+                  </p>
+                  <p className="mt-2 text-sm font-semibold text-slate-900">{eventDate.full}</p>
                 </div>
 
-                {/* Description */}
-                {event.description && (
-                  <div>
-                    <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                      About this Event
-                    </h4>
-                    <p className="text-sm text-gray-300 leading-relaxed">{event.description}</p>
-                  </div>
-                )}
-
-                {/* ── Capacity Bar ── */}
-                <div className="p-4 rounded-xl bg-gray-800/30 border border-gray-800/50">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-semibold text-gray-400 flex items-center gap-1.5">
-                      <Users className="w-3.5 h-3.5" /> Seat Availability
-                    </span>
-                    <span className="text-xs font-bold">
-                      <span className={isFull ? 'text-red-400' : 'text-emerald-400'}>
-                        {event.available_seats}
-                      </span>
-                      <span className="text-gray-600"> / {event.max_capacity} seats left</span>
-                    </span>
-                  </div>
-                  <div className="h-2.5 bg-gray-800 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all duration-700 ${
-                        isFull        ? 'bg-gradient-to-r from-red-600 to-red-400' :
-                        fillPct > 75  ? 'bg-gradient-to-r from-amber-600 to-amber-400' :
-                                        'bg-gradient-to-r from-emerald-600 to-emerald-400'
-                      }`}
-                      style={{ width: `${Math.min(100, fillPct)}%` }}
-                    />
-                  </div>
-                  <div className="flex justify-between mt-1.5 text-[10px] text-gray-600">
-                    <span>{registered} registered</span>
-                    <span>{fillPct.toFixed(0)}% filled</span>
-                  </div>
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="flex items-center gap-2 text-sm font-medium text-slate-500">
+                    <Clock3 className="h-4 w-4" />
+                    Time
+                  </p>
+                  <p className="mt-2 text-sm font-semibold text-slate-900">
+                    {eventDate.time}
+                    {eventEndTime ? ` - ${eventEndTime}` : ''}
+                  </p>
                 </div>
 
-                {/* ── Participation Tracking (if registered) ── */}
-                {regLoading ? (
-                  <div className="flex justify-center py-4">
-                    <Loader2 className="w-5 h-5 text-brand-500 animate-spin" />
-                  </div>
-                ) : myRegistration ? (
-                  <div className={`p-4 rounded-xl border ${regStatus.border} ${regStatus.bg}`}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-xl ${regStatus.bg} flex items-center justify-center`}>
-                          <RegIcon className={`w-5 h-5 ${regStatus.color}`} />
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-white">Your Status</p>
-                          <p className={`text-xs font-medium ${regStatus.color}`}>
-                            {regStatus.label}
-                          </p>
-                        </div>
-                      </div>
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="flex items-center gap-2 text-sm font-medium text-slate-500">
+                    <MapPin className="h-4 w-4" />
+                    Venue
+                  </p>
+                  <p className="mt-2 text-sm font-semibold text-slate-900">
+                    {event.venue_name}
+                    {event.building ? `, ${event.building}` : ''}
+                  </p>
+                </div>
 
-                      <div className="flex items-center gap-2">
-                        {/* Certificate Download */}
-                        {(myRegistration.registration_status === 'completed' ||
-                          myRegistration.registration_status === 'attended') &&
-                          myRegistration.certificate_url && (
-                          <button className="btn-secondary text-xs flex items-center gap-1.5 py-2 px-3">
-                            <Download className="w-3.5 h-3.5" />
-                            Certificate
-                          </button>
-                        )}
-
-                        {/* Cancel Button */}
-                        {myRegistration.registration_status === 'registered' &&
-                          event.status === 'upcoming' && (
-                          <button
-                            onClick={handleCancelRegistration}
-                            disabled={cancelling}
-                            className="btn-danger text-xs py-2 px-3 flex items-center gap-1.5"
-                          >
-                            {cancelling ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                            Cancel
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Participation timeline */}
-                    <div className="flex items-center gap-0 mt-4">
-                      {['registered', 'attended', 'completed'].map((step, i) => {
-                        const isActive = ['registered', 'attended', 'completed']
-                          .indexOf(myRegistration.registration_status) >= i;
-                        return (
-                          <div key={step} className="flex items-center flex-1">
-                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold
-                              ${isActive ? 'bg-brand-500 text-white' : 'bg-gray-800 text-gray-600'}`}>
-                              {i + 1}
-                            </div>
-                            {i < 2 && (
-                              <div className={`flex-1 h-0.5 mx-1 ${isActive ? 'bg-brand-500' : 'bg-gray-800'}`} />
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <div className="flex justify-between mt-1">
-                      {['Registered', 'Attended', 'Completed'].map((label) => (
-                        <span key={label} className="text-[10px] text-gray-600">{label}</span>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="flex items-center gap-2 text-sm font-medium text-slate-500">
+                    <IndianRupee className="h-4 w-4" />
+                    Registration fee
+                  </p>
+                  <p className="mt-2 text-sm font-semibold text-slate-900">
+                    {Number.parseFloat(event.registration_fee) > 0
+                      ? `₹${Number.parseFloat(event.registration_fee).toFixed(0)}`
+                      : 'Free'}
+                  </p>
+                </div>
               </div>
-            )}
 
-            {/* ══════ FEEDBACK TAB ══════ */}
-            {activeTab === 'feedback' && (
-              <div className="space-y-5 animate-fade-in">
+              {event.description && (
+                <section className="space-y-2">
+                  <h3 className="text-lg font-semibold text-slate-900">About this event</h3>
+                  <p className="text-sm leading-7 text-slate-600">{event.description}</p>
+                </section>
+              )}
 
-                {/* Feedback Summary */}
-                {feedbackSummary && feedbackSummary.total_reviews > 0 && (
-                  <div className="p-4 rounded-xl bg-gray-800/30 border border-gray-800/50 flex items-center gap-5">
-                    <div className="text-center">
-                      <p className="text-3xl font-bold text-white">{feedbackSummary.avg_rating}</p>
-                      <div className="flex items-center gap-0.5 mt-1">
-                        {[1,2,3,4,5].map((s) => (
-                          <Star key={s} className={`w-3.5 h-3.5 ${
-                            s <= Math.round(feedbackSummary.avg_rating)
-                              ? 'text-amber-400 fill-amber-400' : 'text-gray-700'
-                          }`} />
+              <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900">Seat availability</h3>
+                    <p className="mt-1 text-sm text-slate-500">
+                      {seatsFilled} registered · {event.available_seats} seats left
+                    </p>
+                  </div>
+                  <span className={`text-sm font-semibold ${fullyBooked ? 'text-red-600' : 'text-slate-900'}`}>
+                    {event.available_seats}/{event.max_capacity}
+                  </span>
+                </div>
+                <div className="mt-4 h-2 rounded-full bg-slate-200">
+                  <div
+                    className={`h-2 rounded-full ${fullyBooked ? 'bg-red-500' : 'bg-brand-500'}`}
+                    style={{ width: `${fillPercent}%` }}
+                  />
+                </div>
+              </section>
+
+              {regLoading ? (
+                <div className="flex items-center justify-center rounded-xl border border-slate-200 bg-slate-50 px-4 py-6">
+                  <Loader2 className="h-5 w-5 animate-spin text-brand-600" />
+                </div>
+              ) : myRegistration ? (
+                <section className={`rounded-2xl border p-5 ${registrationStyle.className}`}>
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/70">
+                        <RegistrationIcon className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold">Your registration</h3>
+                        <p className="mt-1 text-sm">{registrationStyle.label}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-3">
+                      {myRegistration.certificate_url && (
+                        <a
+                          href={myRegistration.certificate_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="btn-secondary"
+                        >
+                          <Download className="h-4 w-4" />
+                          Certificate
+                        </a>
+                      )}
+
+                      {myRegistration.registration_status === 'registered' && event.status === 'upcoming' && (
+                        <button
+                          type="button"
+                          onClick={handleCancelRegistration}
+                          disabled={cancelling}
+                          className="btn-danger"
+                        >
+                          {cancelling ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <XCircle className="h-4 w-4" />
+                          )}
+                          Cancel registration
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </section>
+              ) : (
+                <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                  <h3 className="text-lg font-semibold text-slate-900">Registration status</h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-500">
+                    {event.status === 'upcoming'
+                      ? 'You have not registered for this event yet.'
+                      : 'Registration is not available for this event right now.'}
+                  </p>
+                </section>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'feedback' && (
+            <div className="space-y-6">
+              {feedbackSummary && feedbackSummary.total_reviews > 0 && (
+                <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                  <div className="grid gap-5 md:grid-cols-[180px_minmax(0,1fr)]">
+                    <div className="rounded-xl border border-slate-200 bg-white p-4 text-center">
+                      <p className="text-4xl font-semibold text-slate-900">{feedbackSummary.avg_rating}</p>
+                      <div className="mt-3 flex justify-center gap-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            className={`h-4 w-4 ${
+                              star <= Math.round(feedbackSummary.avg_rating)
+                                ? 'fill-amber-400 text-amber-400'
+                                : 'text-slate-200'
+                            }`}
+                          />
                         ))}
                       </div>
-                      <p className="text-xs text-gray-500 mt-1">{feedbackSummary.total_reviews} reviews</p>
+                      <p className="mt-2 text-sm text-slate-500">
+                        {feedbackSummary.total_reviews} review{feedbackSummary.total_reviews === 1 ? '' : 's'}
+                      </p>
                     </div>
 
-                    {/* Rating distribution */}
-                    <div className="flex-1 space-y-1">
-                      {[5,4,3,2,1].map((star) => {
-                        const count = feedbackList.filter((f) => f.rating === star).length;
-                        const pct = feedbackSummary.total_reviews > 0
-                          ? (count / feedbackSummary.total_reviews * 100) : 0;
+                    <div className="space-y-3">
+                      {[5, 4, 3, 2, 1].map((star) => {
+                        const count = feedbackList.filter((entry) => entry.rating === star).length;
+                        const width = feedbackSummary.total_reviews
+                          ? (count / feedbackSummary.total_reviews) * 100
+                          : 0;
+
                         return (
-                          <div key={star} className="flex items-center gap-2 text-xs">
-                            <span className="text-gray-500 w-3">{star}</span>
-                            <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
-                            <div className="flex-1 h-1.5 bg-gray-800 rounded-full overflow-hidden">
-                              <div className="h-full bg-amber-500 rounded-full" style={{ width: `${pct}%` }} />
+                          <div key={star} className="flex items-center gap-3">
+                            <span className="w-8 text-sm font-medium text-slate-600">{star}★</span>
+                            <div className="h-2 flex-1 rounded-full bg-slate-200">
+                              <div className="h-2 rounded-full bg-amber-400" style={{ width: `${width}%` }} />
                             </div>
-                            <span className="text-gray-600 w-5 text-right">{count}</span>
+                            <span className="w-10 text-right text-sm text-slate-500">{count}</span>
                           </div>
                         );
                       })}
                     </div>
                   </div>
-                )}
+                </section>
+              )}
 
-                {/* Submit Feedback Form */}
-                {myRegistration && !hasSubmittedFeedback && (
-                  <form onSubmit={handleSubmitFeedback}
-                        className="p-4 rounded-xl bg-gray-800/30 border border-gray-800/50">
-                    <h4 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-                      <Trophy className="w-4 h-4 text-amber-400" />
-                      Rate this Event
-                    </h4>
+              {myRegistration && !hasSubmittedFeedback && (
+                <form onSubmit={handleSubmitFeedback} className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="text-lg font-semibold text-slate-900">Share your feedback</h3>
+                      <p className="mt-1 text-sm text-slate-500">
+                        Let others know what stood out and how the event could improve.
+                      </p>
+                    </div>
 
-                    {/* Star Rating */}
-                    <div className="flex items-center gap-1 mb-4">
-                      {[1,2,3,4,5].map((star) => (
+                    <div className="flex flex-wrap items-center gap-2">
+                      {[1, 2, 3, 4, 5].map((star) => (
                         <button
                           key={star}
                           type="button"
-                          onClick={() => setFeedback((f) => ({ ...f, rating: star }))}
-                          className="p-1 transition-transform hover:scale-125"
+                          onClick={() => setFeedback((current) => ({ ...current, rating: star }))}
+                          className="rounded-lg p-1 transition hover:scale-110"
                         >
-                          <Star className={`w-7 h-7 transition-colors ${
-                            star <= feedback.rating
-                              ? 'text-amber-400 fill-amber-400'
-                              : 'text-gray-700 hover:text-gray-500'
-                          }`} />
+                          <Star
+                            className={`h-7 w-7 ${
+                              star <= feedback.rating
+                                ? 'fill-amber-400 text-amber-400'
+                                : 'text-slate-300'
+                            }`}
+                          />
                         </button>
                       ))}
-                      {feedback.rating > 0 && (
-                        <span className="ml-2 text-sm text-gray-400">
-                          {['', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent'][feedback.rating]}
-                        </span>
-                      )}
                     </div>
 
-                    {/* Comment */}
                     <textarea
                       value={feedback.comments}
-                      onChange={(e) => setFeedback((f) => ({ ...f, comments: e.target.value }))}
-                      placeholder="Share your experience..."
-                      rows={3}
-                      className="input-field resize-none mb-3"
+                      onChange={(eventObject) => setFeedback((current) => ({ ...current, comments: eventObject.target.value }))}
+                      rows={4}
+                      placeholder="Share your experience with the event"
+                      className="input-field resize-none"
                     />
 
-                    <button
-                      type="submit"
-                      disabled={submittingFeedback || feedback.rating === 0}
-                      className="btn-primary text-sm flex items-center gap-2"
-                    >
+                    <button type="submit" disabled={submittingFeedback || feedback.rating === 0} className="btn-primary">
                       {submittingFeedback ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
-                        <Send className="w-4 h-4" />
+                        <Send className="h-4 w-4" />
                       )}
-                      Submit Feedback
+                      Submit feedback
                     </button>
-                  </form>
-                )}
+                  </div>
+                </form>
+              )}
 
-                {/* Feedback List */}
-                {feedbackList.length > 0 ? (
-                  <div className="space-y-3">
-                    <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Reviews ({feedbackList.length})
-                    </h4>
-                    {feedbackList.map((fb) => (
-                      <div key={fb.feedback_id}
-                           className="p-3 rounded-xl bg-gray-800/20 border border-gray-800/30">
-                        <div className="flex items-center justify-between mb-1.5">
-                          <div className="flex items-center gap-2">
-                            <div className="w-7 h-7 rounded-lg bg-gray-800 flex items-center justify-center
-                                            text-xs font-bold text-gray-400">
-                              {fb.reviewer_name?.split(' ').map(n => n[0]).join('')}
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-gray-300">{fb.reviewer_name}</p>
-                              <p className="text-[10px] text-gray-600">{fb.department}</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-0.5">
-                            {[1,2,3,4,5].map((s) => (
-                              <Star key={s} className={`w-3 h-3 ${
-                                s <= fb.rating ? 'text-amber-400 fill-amber-400' : 'text-gray-700'
-                              }`} />
-                            ))}
-                          </div>
+              {feedbackList.length > 0 ? (
+                <section className="space-y-3">
+                  {feedbackList.map((entry) => (
+                    <article key={entry.feedback_id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <h4 className="text-sm font-semibold text-slate-900">{entry.reviewer_name}</h4>
+                          <p className="mt-1 text-xs text-slate-500">{entry.department}</p>
                         </div>
-                        {fb.comments && (
-                          <p className="text-xs text-gray-400 leading-relaxed ml-9">
-                            {fb.comments}
-                          </p>
-                        )}
+                        <div className="flex items-center gap-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              className={`h-4 w-4 ${
+                                star <= entry.rating
+                                  ? 'fill-amber-400 text-amber-400'
+                                  : 'text-slate-200'
+                              }`}
+                            />
+                          ))}
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <Star className="w-8 h-8 text-gray-700 mx-auto mb-2" />
-                    <p className="text-sm text-gray-500">No feedback yet</p>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+                      {entry.comments && (
+                        <p className="mt-4 text-sm leading-7 text-slate-600">{entry.comments}</p>
+                      )}
+                    </article>
+                  ))}
+                </section>
+              ) : (
+                <section className="rounded-2xl border border-slate-200 bg-slate-50 px-6 py-14 text-center">
+                  <Star className="mx-auto h-8 w-8 text-slate-300" />
+                  <h3 className="mt-4 text-lg font-semibold text-slate-900">No feedback yet</h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-500">
+                    Reviews from attendees will appear here once they&apos;re submitted.
+                  </p>
+                </section>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* ── Sticky Footer — Register Button ── */}
-        {!regLoading && !myRegistration && event.status === 'upcoming' && (
-          <div className="shrink-0 px-6 py-4 border-t border-gray-800/50 bg-gray-900/80 backdrop-blur-xl">
+        {canRegister && (
+          <div className="border-t border-slate-200 bg-white px-6 py-5 sm:px-8">
             <button
+              type="button"
               onClick={handleRegister}
-              disabled={isFull || registering}
-              className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl
-                         font-semibold text-sm transition-all duration-200
-                         ${isFull
-                           ? 'bg-gray-800/50 text-gray-600 cursor-not-allowed'
-                           : 'bg-gradient-to-r from-brand-600 to-brand-500 text-white hover:from-brand-500 hover:to-brand-400 shadow-lg shadow-brand-500/25 active:scale-[0.98]'
-                         }`}
+              disabled={fullyBooked || registering}
+              className="btn-primary w-full"
             >
               {registering ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : isFull ? (
-                'Event is Full — No Seats Available'
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : fullyBooked ? (
+                'Event is full'
               ) : (
                 <>
-                  <Ticket className="w-5 h-5" />
-                  Register for this Event
+                  <Ticket className="h-5 w-5" />
+                  Register for this event
                 </>
               )}
             </button>

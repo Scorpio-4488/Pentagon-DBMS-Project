@@ -1,18 +1,9 @@
--- ============================================================
--- College Event Management System — DDL (Schema Definition)
--- Engine: MySQL 8.0+ (InnoDB)
--- Normalization: BCNF
--- ============================================================
-
 CREATE DATABASE IF NOT EXISTS college_events
     CHARACTER SET utf8mb4
     COLLATE utf8mb4_unicode_ci;
 
 USE college_events;
 
--- ──────────────────────────────────────────────
--- 1. Users
--- ──────────────────────────────────────────────
 CREATE TABLE users (
     user_id       INT AUTO_INCREMENT PRIMARY KEY,
     first_name    VARCHAR(50)   NOT NULL,
@@ -30,20 +21,12 @@ CREATE TABLE users (
     INDEX idx_users_department (department)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-
--- ──────────────────────────────────────────────
--- 2. Event Categories
--- ──────────────────────────────────────────────
 CREATE TABLE event_categories (
     category_id   INT AUTO_INCREMENT PRIMARY KEY,
     category_name VARCHAR(50)  NOT NULL UNIQUE,
     description   VARCHAR(255)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-
--- ──────────────────────────────────────────────
--- 3. Venues
--- ──────────────────────────────────────────────
 CREATE TABLE venues (
     venue_id   INT AUTO_INCREMENT PRIMARY KEY,
     venue_name VARCHAR(100) NOT NULL,
@@ -54,10 +37,6 @@ CREATE TABLE venues (
     CHECK (capacity > 0)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-
--- ──────────────────────────────────────────────
--- 4. Events
--- ──────────────────────────────────────────────
 CREATE TABLE events (
     event_id        INT AUTO_INCREMENT PRIMARY KEY,
     event_name      VARCHAR(200) NOT NULL,
@@ -90,10 +69,6 @@ CREATE TABLE events (
     FULLTEXT INDEX ft_events_search (event_name, description)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-
--- ──────────────────────────────────────────────
--- 5. Registrations
--- ──────────────────────────────────────────────
 CREATE TABLE registrations (
     registration_id INT AUTO_INCREMENT PRIMARY KEY,
     user_id         INT NOT NULL,
@@ -111,10 +86,6 @@ CREATE TABLE registrations (
     INDEX idx_reg_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-
--- ──────────────────────────────────────────────
--- 6. Attendance
--- ──────────────────────────────────────────────
 CREATE TABLE attendance (
     attendance_id   INT AUTO_INCREMENT PRIMARY KEY,
     registration_id INT NOT NULL,
@@ -128,10 +99,6 @@ CREATE TABLE attendance (
     UNIQUE KEY uq_attendance_reg (registration_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-
--- ──────────────────────────────────────────────
--- 7. Feedback
--- ──────────────────────────────────────────────
 CREATE TABLE feedback (
     feedback_id  INT AUTO_INCREMENT PRIMARY KEY,
     user_id      INT      NOT NULL,
@@ -148,10 +115,6 @@ CREATE TABLE feedback (
     INDEX idx_fb_event (event_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-
--- ──────────────────────────────────────────────
--- 8. Certificates
--- ──────────────────────────────────────────────
 CREATE TABLE certificates (
     certificate_id   INT AUTO_INCREMENT PRIMARY KEY,
     registration_id  INT          NOT NULL,
@@ -165,10 +128,6 @@ CREATE TABLE certificates (
     UNIQUE KEY uq_cert_reg (registration_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-
--- ──────────────────────────────────────────────
--- 9. Notifications
--- ──────────────────────────────────────────────
 CREATE TABLE notifications (
     notification_id INT AUTO_INCREMENT PRIMARY KEY,
     user_id         INT          NOT NULL,

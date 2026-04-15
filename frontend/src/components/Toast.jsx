@@ -1,106 +1,91 @@
-/**
- * ============================================================
- * Toast Notification Component
- * ============================================================
- *
- * Lightweight toast system for success/error/info messages.
- * Auto-dismisses after a configurable duration.
- * ============================================================
- */
+import { useCallback, useEffect, useState } from 'react';
+import { AlertCircle, CheckCircle2, Info, X } from 'lucide-react';
 
-import { useState, useEffect, useCallback } from 'react';
-import { X, CheckCircle, AlertCircle, Info } from 'lucide-react';
+let nextToastId = 0;
+let emitToast;
 
-// ── Toast Container + Hook ──
+const TOAST_STYLES = {
+  success: {
+    className: 'border-emerald-200 bg-white text-slate-800',
+    icon: <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />,
+  },
+  error: {
+    className: 'border-red-200 bg-white text-slate-800',
+    icon: <AlertCircle className="h-5 w-5 shrink-0 text-red-600" />,
+  },
+  info: {
+    className: 'border-brand-200 bg-white text-slate-800',
+    icon: <Info className="h-5 w-5 shrink-0 text-brand-600" />,
+  },
+};
 
-let toastIdCounter = 0;
-let addToastExternal = null;
-
-/**
- * Hook to manage toast state.
- * Returns [toasts, addToast, removeToast].
- */
 export function useToast() {
   const [toasts, setToasts] = useState([]);
 
   const removeToast = useCallback((id) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
+    setToasts((current) => current.filter((toast) => toast.id !== id));
   }, []);
 
   const addToast = useCallback((message, type = 'info', duration = 4000) => {
-    const id = ++toastIdCounter;
-    setToasts((prev) => [...prev, { id, message, type, duration }]);
+    const id = ++nextToastId;
+    setToasts((current) => [...current, { id, message, type, duration }]);
     return id;
   }, []);
 
-  // Expose addToast for external use
   useEffect(() => {
-    addToastExternal = addToast;
-    return () => { addToastExternal = null; };
+    emitToast = addToast;
+    return () => {
+      emitToast = null;
+    };
   }, [addToast]);
 
   return { toasts, addToast, removeToast };
 }
 
-/** Fire a toast from anywhere (after ToastContainer is mounted) */
 export function toast(message, type = 'info', duration = 4000) {
-  if (addToastExternal) {
-    return addToastExternal(message, type, duration);
-  }
+  return emitToast?.(message, type, duration);
 }
 
-toast.success = (msg, dur) => toast(msg, 'success', dur);
-toast.error   = (msg, dur) => toast(msg, 'error', dur);
-toast.info    = (msg, dur) => toast(msg, 'info', dur);
-
-// ── Single Toast Item ──
+toast.success = (message, duration) => toast(message, 'success', duration);
+toast.error = (message, duration) => toast(message, 'error', duration);
+toast.info = (message, duration) => toast(message, 'info', duration);
 
 function ToastItem({ id, message, type, duration, onRemove }) {
   useEffect(() => {
-    const timer = setTimeout(() => onRemove(id), duration);
-    return () => clearTimeout(timer);
-  }, [id, duration, onRemove]);
+    const timeoutId = window.setTimeout(() => onRemove(id), duration);
+    return () => window.clearTimeout(timeoutId);
+  }, [duration, id, onRemove]);
 
-  const styles = {
-    success: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300',
-    error:   'border-red-500/30 bg-red-500/10 text-red-300',
-    info:    'border-brand-500/30 bg-brand-500/10 text-brand-300',
-  };
-
-  const icons = {
-    success: <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />,
-    error:   <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />,
-    info:    <Info className="w-5 h-5 text-brand-400 shrink-0" />,
-  };
+  const style = TOAST_STYLES[type] ?? TOAST_STYLES.info;
 
   return (
     <div
-      className={`flex items-center gap-3 px-4 py-3 rounded-xl border backdrop-blur-xl
-                  shadow-2xl animate-slide-down ${styles[type]}`}
+      className={`animate-slide-down flex items-center gap-3 rounded-xl border px-4 py-3 shadow-[0_12px_30px_rgba(15,23,42,0.08)] ${style.className}`}
     >
-      {icons[type]}
-      <p className="text-sm font-medium flex-1">{message}</p>
+      {style.icon}
+      <p className="flex-1 text-sm font-medium leading-6">{message}</p>
       <button
+        type="button"
         onClick={() => onRemove(id)}
-        className="text-gray-500 hover:text-gray-300 transition-colors"
+        className="rounded-md p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
       >
-        <X className="w-4 h-4" />
+        <X className="h-4 w-4" />
       </button>
     </div>
   );
 }
 
-// ── Toast Container (mount once in App) ──
-
 export function ToastContainer() {
-  const { toasts, removeToast } = useToast();
+  const { removeToast, toasts } = useToast();
 
-  if (toasts.length === 0) return null;
+  if (toasts.length === 0) {
+    return null;
+  }
 
   return (
-    <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 w-96 max-w-[90vw]">
-      {toasts.map((t) => (
-        <ToastItem key={t.id} {...t} onRemove={removeToast} />
+    <div className="fixed right-4 top-4 z-50 flex w-[min(380px,calc(100vw-2rem))] flex-col gap-2">
+      {toasts.map((entry) => (
+        <ToastItem key={entry.id} {...entry} onRemove={removeToast} />
       ))}
     </div>
   );
