@@ -18,24 +18,37 @@ Built as a **DBMS course project** demonstrating BCNF-normalized relational desi
 
 ## 📸 Screenshots
 
+#### Login and Registration Interface
+<img width="1244" height="395" alt="image" src="https://github.com/user-attachments/assets/7f4219bb-efc6-4069-b9e0-e1b02500cccf" />
+
 #### Seat/Capacity Management: Limit registrations based on available slots
-![WhatsApp Image 2026-04-12 at 18 59 59](https://github.com/user-attachments/assets/c61710b0-ca46-4f54-95b8-d08d0ee29826)
+<img width="1113" height="864" alt="image" src="https://github.com/user-attachments/assets/53806c26-9352-4725-a939-5a0038789139" />
+
 #### Participation Tracking: Track which students have registered, attended, or completed events; manage participation status
 #### Certificates & Results: Generate participation or winner certificates
-![7](https://github.com/user-attachments/assets/dbad43d1-0e9f-4e31-b424-2c1d51151434)
+<img width="645" height="694" alt="image" src="https://github.com/user-attachments/assets/220e8f56-7598-4acc-b338-04ffc077f63c" />
+
 
 #### Event Creation: Organizers can create and manage events with details such as event name, date, venue, description, and capacity
-![WhatsApp Image 2026-04-12 at 19 00 00](https://github.com/user-attachments/assets/ca9ff530-886e-461c-b2b5-edad70e837a5)
+<img width="1052" height="664" alt="image" src="https://github.com/user-attachments/assets/b7dc8cb1-b68e-4caf-917a-5aab4eccdf9f" />
+
+
 #### Student Registration: Students can register for events, and the system stores participant details in the database
-![9](https://github.com/user-attachments/assets/ca7cea45-b32a-4b10-b296-b03dc9c1a9d0)
+<img width="661" height="668" alt="image" src="https://github.com/user-attachments/assets/147a2e75-4e75-4e6b-a710-8d69cd6f381e" />
+
+
 #### Feedback System: Collect feedback from participants
-![8](https://github.com/user-attachments/assets/a0dc8573-b358-4c37-a4b5-47296acee7ef)
+<img width="660" height="728" alt="image" src="https://github.com/user-attachments/assets/80dd1dc6-79db-4cb9-8dcf-21ae74c2dd79" />
+
+
 #### Event Categories: Technical, cultural, sports, etc.
-![2](https://github.com/user-attachments/assets/c19c378d-f03d-4d60-87d4-cebfffdab0e5)
-![3](https://github.com/user-attachments/assets/e2c04faf-e641-4974-95e0-138e9f222d79)
-![4](https://github.com/user-attachments/assets/0a31ce44-470a-4c13-9ee1-140bbd43c91e)
+<img width="1044" height="622" alt="image" src="https://github.com/user-attachments/assets/b528899f-824b-4ff9-a0c0-4f450a8679b3" />
+
+<img width="705" height="737" alt="image" src="https://github.com/user-attachments/assets/28cfcbd7-8001-468e-938e-3b00daae5dd8" />
+
+
 #### Notifications: Send updates or reminders about upcoming events, registration deadlines, or changes
-![5](https://github.com/user-attachments/assets/ae3a6662-c4de-47bd-8050-861ae8f940bb)
+<img width="1233" height="608" alt="image" src="https://github.com/user-attachments/assets/6012c227-2851-47cb-bf36-4efbbbd84609" />
 
 ---
 
