@@ -12,7 +12,7 @@ Built as a **DBMS course project** demonstrating BCNF-normalized relational desi
 | Sagar Sahu | Backend API Development |
 | Asish Kumar Das | Frontend UI/UX |
 | Mayank Kumar Khastagir | Testing & Documentation |
-| Ronnic Wilmer Ekka| Integration & Deployment |
+| Ronnic Wilmer Ekka| ER Diagram & Documentation |
 
 ---
 
